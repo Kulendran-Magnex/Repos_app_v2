@@ -1,0 +1,53 @@
+/* AddMaterialRequest.css */
+
+.page-container {
+  background-color: whitesmoke;
+  min-height: 91vh;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 16px;
+  padding: 16px;
+}
+
+.form-section,
+.product-section {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.form-container {
+  min-width: 100px;
+  width: 90%;
+  padding: 16px;
+  display: grid;
+  row-gap: 4px;
+  column-gap: 16px;
+  grid-template-columns: repeat(1, 1fr);
+  background-color: white;
+}
+
+@media (min-width: 600px) {
+  .form-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .form-container.product-fields {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.barcode-container {
+  display: flex;
+  flex-direction: row;
+  column-gap: 8px;
+}
+
+.table-wrapper {
+  background-color: white;
+  margin: 24px;
+}

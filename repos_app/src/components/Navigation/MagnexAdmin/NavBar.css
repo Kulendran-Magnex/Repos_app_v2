@@ -1,0 +1,20 @@
+.nav-button {
+  position: relative;
+  background-color: transparent;
+}
+
+.nav-button:hover {
+  background-color: transparent;
+}
+
+.nav-button:hover .dot-icon {
+  opacity: 1;
+}
+
+.dot-icon {
+  width: 10px;
+  height: 10px;
+  transition: opacity 0.3s ease-in-out;
+  margin-right: -5px;
+  margin-bottom: 2px;
+}

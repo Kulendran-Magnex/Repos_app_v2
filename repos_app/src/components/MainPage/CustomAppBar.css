@@ -1,0 +1,65 @@
+/* CustomAppBar.css */
+
+.appBar {
+  background-color: white;
+  color: black;
+  padding: 0;
+  height: 70px;
+  margin-bottom: 0;
+}
+
+.toolbar {
+  height: 70px;
+  padding: 0 16px;
+}
+
+.button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.button:hover .dot-icon {
+  opacity: 1; /* Show on hover */
+}
+
+.button:hover {
+  background-color: transparent; /* Disable hover background */
+}
+
+.dot-icon {
+  width: 10px;
+  height: 10px;
+  margin-right: -5px;
+  margin-bottom: 2px;
+  transition: opacity 0.3s ease-in-out; /* Smooth transition */
+}
+
+.dot-icon.home {
+  opacity: 0;
+  color: grey;
+}
+
+.dot-icon.home.active {
+  opacity: 1;
+  color: #4dabf5;
+}
+
+.dot-icon.master.active {
+  opacity: 1;
+  color: #4dabf5;
+}
+
+.dot-icon.master {
+  opacity: 0;
+  color: grey;
+}
+
+.menuItem {
+  padding: 8px 20px;
+}
+
+.activeMenuItem {
+  background-color: #f0f0f0;
+}

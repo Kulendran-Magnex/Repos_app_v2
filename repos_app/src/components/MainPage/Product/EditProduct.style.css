@@ -1,0 +1,91 @@
+/* editproduct.style.css */
+
+/* Main Box Container */
+.edit-product-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  padding-top: 5px;
+}
+
+.edit-product-card-container {
+  display: flex;
+  width: 85%;
+  border: 1px solid #000;
+}
+
+/* Card Container */
+.edit-product-card {
+  padding: 2rem;
+  background-color: #f4f4f9;
+}
+
+/* Form Grid */
+.edit-product-form-grid {
+  display: grid;
+  row-gap: 3rem;
+  column-gap: 2rem;
+  grid-template-columns: repeat(1, 1fr);
+  margin: 2rem;
+}
+
+@media (min-width: 600px) {
+  .edit-product-form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .edit-product-form-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Form Field Style */
+.edit-product-form-field {
+  background-color: white;
+}
+
+.edit-product-outlined-input {
+  border-color: #0b6075;
+}
+
+.edit-product-outlined-input-focused {
+  border-color: #1aa4c7;
+}
+
+.edit-product-label {
+  color: #1aa4c7;
+}
+
+.edit-product-label-focused {
+  color: #0b6075;
+}
+
+/* Button Container */
+.edit-product-button-container {
+  display: flex;
+  margin-left: 2rem;
+  column-gap: 2rem;
+}
+
+.collapse-buttons {
+  margin-top: 20px;
+}
+
+.collapse-content {
+  margin-top: 10px;
+}
+
+.card-body {
+  padding: 20px;
+  background-color: #f0f0f0;
+}
+
+@media (max-width: 600px) {
+  /* For small screens, make the collapse content display below the buttons */
+  .collapse-content {
+    margin-top: 10px;
+  }
+}

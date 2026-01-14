@@ -1,0 +1,31 @@
+.tax-group-form {
+  padding: 20px;
+  background-color: #f4f4f4;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.form-title {
+  margin-bottom: 16px;
+  color: #333;
+  font-weight: 600;
+}
+
+.input-field {
+  margin-bottom: 16px;
+}
+
+.select-field {
+  margin-bottom: 16px;
+}
+
+.submit-button {
+  margin-top: 16px;
+  background-color: #1976d2;
+  color: white;
+  font-weight: 600;
+}
+
+.submit-button:hover {
+  background-color: #1565c0;
+}
