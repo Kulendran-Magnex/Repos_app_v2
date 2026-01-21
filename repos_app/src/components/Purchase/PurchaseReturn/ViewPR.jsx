@@ -45,7 +45,6 @@ const ViewPR = () => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchCode, setSearchCode] = useState("");
-  const [searchDate, setSearchDate] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [page, setPage] = useState(0);

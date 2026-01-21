@@ -134,7 +134,7 @@ export default function AddPR() {
     Location: "",
     Supplier: "",
     Invoice_No: "",
-    PR_Status: "O",
+    PR_Status: 0,
     TaxGroup: "",
   });
 
@@ -835,8 +835,8 @@ export default function AddPR() {
                     }}
                     disabled={added}
                   >
-                    <MenuItem value={"O"}>Open</MenuItem>
-                    <MenuItem value={"C"}>Closed</MenuItem>
+                    <MenuItem value={0}>Open</MenuItem>
+                    <MenuItem value={1}>Closed</MenuItem>
                   </Select>
                 </FormControl>
               </Box>

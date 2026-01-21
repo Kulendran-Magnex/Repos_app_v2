@@ -313,7 +313,7 @@ export const updateSupplierMaster = async (id, SupplierData) => {
   try {
     const response = await axios.put(
       `${SupplierMaster_URL}/${id}`,
-      SupplierData
+      SupplierData,
     );
     return response.data;
   } catch (error) {
@@ -513,7 +513,7 @@ export const editGRN = async (GRN_Code, payload) => {
 
 export const insertBO_Tran = async (id) => {
   try {
-    const response = await api.post(`${BO_Tran_URL}/${id}`);
+    const response = await api.post(`${BO_Tran_URL}withGRN/${id}`);
     return response.data;
   } catch (error) {
     throw new Error(`Failed to insert BO data: ${error.message}`);
@@ -521,9 +521,17 @@ export const insertBO_Tran = async (id) => {
 };
 
 export const insertBO_Tran_PR = async (id) => {
-  console.log("print ID:", id);
   try {
     const response = await api.post(`${BO_Tran_URL}withPR/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(`Failed to insert BO data: ${error.message}`);
+  }
+};
+
+export const insertBO_Tran_Adjustment = async (id) => {
+  try {
+    const response = await api.post(`${BO_Tran_URL}withAdjustment/${id}`);
     return response.data;
   } catch (error) {
     throw new Error(`Failed to insert BO data: ${error.message}`);
@@ -577,7 +585,7 @@ export const editPurchaseReturn = async (PR_Code, payload) => {
   try {
     const response = await axios.put(
       `${PurchaseReturn_URL}/${PR_Code}`,
-      dataToSend
+      dataToSend,
     );
 
     return response.data;

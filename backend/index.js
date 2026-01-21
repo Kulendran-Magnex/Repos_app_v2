@@ -12,7 +12,7 @@ app.use(
     origin: "http://localhost:5173",
     methods: "GET, POST, PUT, DELETE",
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 app.use(express.json());
 
@@ -32,6 +32,8 @@ const purchaseOrderRoutes = require("./routes/Purchase/purchaseOrderRoutes");
 const grnRoutes = require("./routes/Purchase/grnRoutes");
 const purchaseReturnRoutes = require("./routes/Purchase/purchaseReturnRoutes");
 const taxRoutes = require("./routes/taxRoutes");
+const adjustmentRoutes = require("./routes/Inventory/adjustmentRoutes");
+const boTranRoutes = require("./routes/BOTran/boTranRoutes");
 
 app.use("/auth", authRoutes);
 app.use("/", productRoutes);
@@ -48,6 +50,8 @@ app.use("/api", purchaseOrderRoutes);
 app.use("/api", grnRoutes);
 app.use("/api", purchaseReturnRoutes);
 app.use("/api", taxRoutes);
+app.use("/api", adjustmentRoutes);
+app.use("/api", boTranRoutes);
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);

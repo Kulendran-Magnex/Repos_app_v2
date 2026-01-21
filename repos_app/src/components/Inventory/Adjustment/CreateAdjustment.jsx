@@ -69,7 +69,7 @@ export default function CreateAdjustment() {
     Adj_Date: today,
     Location: "",
     Posting_Type: "ADJ",
-    Adj_Status: "O",
+    Adj_Status: 0,
     Created_By: "Admin",
     Remarks: "",
   });

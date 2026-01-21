@@ -24,21 +24,16 @@ import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PrintIcon from "@mui/icons-material/Print";
 import {
-  editAdjustment,
+  addAdjustment,
   fetchLocationMaster,
-  insertBO_Tran_Adjustment
+  insertBO_Tran_PR,
 } from "../../API/api";
 import SearchDialog from "../../Purchase/PurchaseOrder/SearchDialog";
-import { fetchTaxGroup } from "../../API/api";
-import axios from "axios";
-import { evaluate } from "mathjs";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import EditableNumberCell from "../../Common/EditableNumberCell";
 import EditableNumberCell2 from "../../Common/EditableNumberCell2";
 import { useFormNavigation } from "../../../utils/useFormNavigation";
-import GRNSearchDialog from "../../Purchase/GRN/GRNSearchDialog";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PageHeader from "../../Common/PageHeader";
 
 const calculatePrice = async (product) => {
@@ -49,49 +44,36 @@ const calculatePrice = async (product) => {
 
   return {
     ...product,
-    Total_Amount: subTotal.toFixed(2),
+    total: subTotal.toFixed(2),
   };
 };
 
-export default function EditAdjustment() {
-  const [supplierList, setSupplierList] = useState([]);
+export default function CreateTransfer() {
   const [locationList, setLocationList] = useState([]);
-  const [taxGroupList, setTaxGroupList] = useState([]);
   const [openAddModal, setOpenAddModal] = useState(false);
-  const [openPOSearch, setOpenPOSearch] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
   const [unitPrice, setUnitPrice] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [discountRate, setDiscountRate] = useState(0);
-  const [discountAmount, setDiscountAmount] = useState("");
   const [total, setTotal] = useState("");
   const [productList, setProductList] = useState([]);
-  const [taxRate, setTaxRate] = useState([]);
-  const [taxAmount, setTaxAmount] = useState([]);
   const [totalSum, setTotalSum] = useState(0);
   const [taxSum, setTaxSum] = useState(0);
   const [editingRowIndex, setEditingRowIndex] = useState(null);
   const today = new Date().toISOString().split("T")[0];
-  const navigate = useNavigate();
-  const [addedGRNCodes, setAddedGRNCodes] = useState([]);
   const { getRef, handleKeyDown } = useFormNavigation(10); // 10 fields
   const [grnCode, setGrnCode] = useState("New");
   const [posted, setPosted] = useState(false);
   const [added, setAdded] = useState(false);
-  const location = useLocation();
-  const { currentItemID } = location.state || {};
 
-  const [adjHeaderData, setAdjHeaderData] = useState({
-    Adjustment_Code: "New",
-    Adj_Date: today,
+  const [headerData, setHeaderData] = useState({
+    Transfer_ID: "New",
+    Transfer_Date: today,
     Location: "",
-    Posting_Type: "ADJ",
-    Adj_Status: 0,
+    Status: 0,
     Created_By: "Admin",
     Remarks: "",
   });
 
-  const [adjData, setAdjData] = useState({
+  const [data, setData] = useState({
     Barcode: "",
     Product_ID: "",
     Description: "",
@@ -114,73 +96,6 @@ export default function EditAdjustment() {
 
     loadLocationData();
   }, []);
-
- 
-
-  useEffect(() => {
-    if (!currentItemID) return;
-
-    axios
-      .get(`http://localhost:5000/api/adjustment_header/${currentItemID}`)
-      .then((res) => {
-        const data = res.data[0];
-     
-        // Format dates safely or return empty string if null
-        const formatDate = (value) => {
-          if (!value) return ""; // handles null or undefined
-          const date = new Date(value);
-          return isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
-        };
-
-        setAdjHeaderData({
-          Adj_Date: formatDate(data.Adjustment_Date),
-          Adjustment_Code: data.Adjustment_ID || "",
-          Location: data.Location_ID || "",
-          Adj_Status: data.Status === "" || data.Status == null ? 0: Number(data.Status),
-          Posting_Type: data.Posting_Type || "",
-          Remarks: data.Remarks,
-          Created_By: data.Created_By || "",
-        });
-
-        if (data.GRN_Status === "P") {
-          setPosted(true);
-        } else {
-          setPosted(false); // optional, if you want to reset when not "P"
-        }
-      })
-      .catch((err) => {
-        console.error("Error fetching Adjustment Header data:", err);
-      });
-  }, [currentItemID]);
-
-  useEffect(() => {
-    if (!currentItemID) return;
-
-    const fetchGRNTran = async () => {
-      try {
-        const res = await axios.get(
-          `http://localhost:5000/api/adjustment_detail/${currentItemID}`
-        );
-        const data = res.data;
-        if (data) {
-          const formattedList = data.map((item) => ({
-            Barcode: item.Barcode,
-            Product_ID: item.Product_ID,
-            Description: item.Description,
-            Product_UM: item.Adjustment_UM,
-            Total_Amount: item.Adjustment_Cost,
-            quantity: item.Adjustment_QTY,
-            unitPrice: item.Unit_Cost,
-          }));
-          setProductList(formattedList);
-        }
-      } catch (err) {
-        console.error("Error fetching PR Tran data:", err);
-      }
-    };
-
-    fetchGRNTran();
-  }, [currentItemID]);
 
   useEffect(() => {
     const price = parseFloat(unitPrice);
@@ -221,7 +136,6 @@ export default function EditAdjustment() {
     const handleKeyDown = (event) => {
       if (event.key === "F1") {
         event.preventDefault(); // ✅ This must come before any return or browser will still react
-        setOpenPOSearch(true);
       }
     };
 
@@ -240,9 +154,7 @@ export default function EditAdjustment() {
 
   //////need to do here
   const handleProductSelect = (product) => {
-   
-    setSelectedProduct(product); // Save selected row from child
-    setAdjData({
+    setData({
       Barcode: product.Barcode,
       Product_ID: product.Product_ID,
       Description: product.Description,
@@ -255,20 +167,10 @@ export default function EditAdjustment() {
     setOpenAddModal(false); // Optionally close dialog
   };
 
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
-    setAdjHeaderData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
-
-  const handlePRDataChange = (e) => {
-    const { name, value } = e.target;
-
-    setAdjData((prevData) => ({
+    setHeaderData((prevData) => ({
       ...prevData,
       [name]: value,
     }));
@@ -286,10 +188,11 @@ export default function EditAdjustment() {
   };
 
 
+
   const handleAddToTable = () => {
     // Prevent duplicate item by Barcode
     const isDuplicate = productList.some(
-      (item) => item.Barcode === adjData.Barcode
+      (item) => item.data?.Barcode === data.Barcode
     );
 
     if (isDuplicate) {
@@ -298,28 +201,21 @@ export default function EditAdjustment() {
       setQuantity("");
       setTotal("");
 
-      //setSelectedProduct(null);
-      setAdjData(null);
+      setData(null);
       return;
     }
 
-    const { Barcode, Product_ID, Description, UOM } = adjData;
+    const { Barcode, Product_ID, Description, UOM } = data;
 
     if (!Barcode || !Product_ID || !Description || !UOM) {
       toast.error("Please fill in all required fields.");
       return;
     }
+
     const newItem = {
-      adjData,
-      Barcode: adjData.Barcode,
-      Product_ID: adjData.Product_ID,
-      Description: adjData.Description,
-      Product_UM: adjData.UOM,
-      Total_Amount: total,
-      quantity,
-      unitPrice: adjData.Unit_Price,
-      // unitPrice,
-      // quantity: Number(quantity).toFixed(2),
+      data,
+      unitPrice,
+      quantity: Number(quantity).toFixed(2),
       total,
     };
 
@@ -328,7 +224,7 @@ export default function EditAdjustment() {
     setUnitPrice("");
     setQuantity("");
     setTotal("");
-    setAdjData({
+    setData({
       Barcode: "",
       Product_ID: "",
       Description: "",
@@ -341,15 +237,15 @@ export default function EditAdjustment() {
 
   const handleRemoveProduct = (barcode) => {
     setProductList((prevList) =>
-      prevList.filter((p) => p.adjData.Barcode !== barcode)
+      prevList.filter((p) => p.data.Barcode !== barcode)
     );
   };
 
   const handleSubmit = async () => {
-    const { Adj_Date, Location } = adjHeaderData;
+    const { Transfer_Date, Location , Remarks } = headerData;
 
     // // Validate required fields
-    if (!Adj_Date || !Location) {
+    if (!Transfer_Date || !Location || !Remarks ) {
       toast.error("Please fill in all required fields in header section.");
       return;
     }
@@ -361,34 +257,34 @@ export default function EditAdjustment() {
     }
 
     const payload = {
-      adjHeaderData,
+      headerData,
       productList,
       totalSum,
       taxSum,
-      addedGRNCodes,
     };
 
 
+
     try {
-      const result = await editAdjustment(currentItemID, payload);
-      if (result.ADJ_Code) {
-        setGrnCode(result.ADJ_Code);
+      const result = await addAdjustment(payload);
+      if (result.Transfer_ID) {
+        setGrnCode(result.Transfer_ID);
       }
       setAdded(true);
       toast.success("Adjustment Added");
     } catch (error) {
-      toast.error("Failed to add Adjustment.");
+      toast.error("Failed to add PR.");
       console.error("Insert failed:", error.message);
     }
   };
 
   const handlePosted = async () => {
     try {
-      await insertBO_Tran_Adjustment(grnCode);
-      toast.success("Adjustment Posted Successfully");
+      // await insertBO_Tran_PR(grnCode);
+      toast.success("PR Posted Successfully");
       setPosted(true);
     } catch (error) {
-      toast.error("Failed to Post Adjustment.");
+      toast.error("Failed to Post PR.");
       console.error("Post failed:", error.message);
     }
   };
@@ -401,7 +297,7 @@ export default function EditAdjustment() {
         <Box sx={{ minHeight: "100vh" }}>
           <br />
           <PageHeader
-            title="Adjustment"
+            title="Transfer"
             actions={[
               <Tooltip title="Save" key="save">
                 <span>
@@ -459,10 +355,10 @@ export default function EditAdjustment() {
               }}
             >
               <TextField
-                label="Adjustment Code"
-                name="Adjustment_Code"
+                label="Transfer Code"
+                name="Transfer_ID"
                 type="text"
-                value={adjHeaderData.Adjustment_Code}
+                value={headerData.Transfer_ID}
                 onChange={handleInputChange}
                 margin="normal"
                 required
@@ -470,9 +366,9 @@ export default function EditAdjustment() {
                 fullWidth
               />
               <TextField
-                label="Adjustment Date"
-                name="Adj_Date"
-                value={adjHeaderData.Adj_Date}
+                label="Transfer Date"
+                name="Transfer_Date"
+                value={headerData.Transfer_Date}
                 inputRef={getRef(0)}
                 onKeyDown={handleKeyDown(0)}
                 type="date"
@@ -490,8 +386,8 @@ export default function EditAdjustment() {
                 <FormControl fullWidth margin="normal">
                   <InputLabel>Status</InputLabel>
                   <Select
-                    name="Adj_Status"
-                    value={Number(adjHeaderData.Adj_Status)}
+                    name="Status"
+                    value={headerData.Status}
                     label="Status"
                     onChange={handleInputChange}
                     MenuProps={{
@@ -510,6 +406,18 @@ export default function EditAdjustment() {
                 </FormControl>
               </Box>
 
+                <TextField
+                label="Created By"
+                name="Created_By"
+                value={headerData.Created_By}
+                onChange={handleInputChange}
+                inputRef={getRef(7)}
+                onKeyDown={handleKeyDown(7)}
+                margin="normal"
+                type="text"
+                disabled
+              />
+
               <Box>
                 <FormControl fullWidth margin="normal">
                   <Autocomplete
@@ -526,14 +434,14 @@ export default function EditAdjustment() {
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        label="Location"
+                        label="Location Form"
                         required
                         // error={!poHeaderData.Location}
                       />
                     )}
                     value={
                       locationList?.find(
-                        (item) => item.Location_ID === adjHeaderData.Location
+                        (item) => item.Location_ID === headerData.Location
                       ) || null
                     }
                     isOptionEqualToValue={(option, value) =>
@@ -544,47 +452,48 @@ export default function EditAdjustment() {
                 </FormControl>
               </Box>
 
-              <Box>
+                 <Box>
                 <FormControl fullWidth margin="normal">
-                  <InputLabel>Posting Type</InputLabel>
-                  <Select
-                    name="Posting_Type"
-                    value={adjHeaderData.Posting_Type}
-                    label="Posting Type"
-                    onChange={handleInputChange}
-                    MenuProps={{
-                      PaperProps: {
-                        style: {
-                          maxHeight: 250, // Set the height for the scrollable area
-                          overflow: "auto", // Enable scroll if content overflows
+                  <Autocomplete
+                    options={locationList}
+                    getOptionLabel={(option) => option.Location_Name || ""}
+                    onChange={(event, newValue) => {
+                      handleInputChange({
+                        target: {
+                          name: "Location",
+                          value: newValue?.Location_ID || "",
                         },
-                      },
+                      });
                     }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Location To"
+                        required
+                        // error={!poHeaderData.Location}
+                      />
+                    )}
+                    value={
+                      locationList?.find(
+                        (item) => item.Location_ID === headerData.Location
+                      ) || null
+                    }
+                    isOptionEqualToValue={(option, value) =>
+                      option.Location_ID === value.Location_ID
+                    }
                     disabled={added}
-                  >
-                    <MenuItem value={"ADJ"}>Adjustment</MenuItem>
-                    <MenuItem value={"OB"}>Opening Balance</MenuItem>
-                    <MenuItem value={"SYS"}>System</MenuItem>
-                  </Select>
+                  />
                 </FormControl>
               </Box>
 
-              <TextField
-                label="Created By"
-                name="Created_By"
-                value={adjHeaderData.Created_By}
-                onChange={handleInputChange}
-                inputRef={getRef(7)}
-                onKeyDown={handleKeyDown(7)}
-                margin="normal"
-                type="text"
-                disabled
-              />
+           
+
+            
 
               <TextField
                 label="Remarks"
                 name="Remarks"
-                value={adjHeaderData.Remarks}
+                value={headerData.Remarks}
                 onChange={handleInputChange}
                 inputRef={getRef(7)}
                 onKeyDown={handleKeyDown(7)}
@@ -634,7 +543,7 @@ export default function EditAdjustment() {
                 <TextField
                   label="Barcode"
                   name="Barcode"
-                  value={adjData?.Barcode || ""}
+                  value={data?.Barcode || ""}
                   fullWidth
                   margin="normal"
                   disabled={added}
@@ -652,7 +561,7 @@ export default function EditAdjustment() {
               <TextField
                 label="Product ID"
                 name="Product_ID"
-                value={adjData?.Product_ID || ""}
+                value={data?.Product_ID || ""}
                 fullWidth
                 margin="normal"
                 disabled
@@ -660,7 +569,7 @@ export default function EditAdjustment() {
               <TextField
                 label="Description"
                 name="Description"
-                value={adjData?.Description || ""}
+                value={data?.Description || ""}
                 fullWidth
                 margin="normal"
                 disabled
@@ -668,7 +577,7 @@ export default function EditAdjustment() {
               <TextField
                 label="UOM"
                 name="UOM"
-                value={adjData?.UOM || ""}
+                value={data?.UOM || ""}
                 margin="normal"
                 disabled
               />
@@ -716,7 +625,7 @@ export default function EditAdjustment() {
             <Box display="flex" justifyContent="center" mt={2}>
               <TableContainer component={Paper} sx={{ width: "100%" }}>
                 <Table>
-                  <TableHead sx={{ backgroundColor: "whitesmoke" }}>
+                  <TableHead>
                     <TableRow>
                       <TableCell></TableCell>
                       <TableCell>
@@ -750,17 +659,19 @@ export default function EditAdjustment() {
                           <IconButton
                             color="error"
                             onClick={() =>
-                              handleRemoveProduct(item.adjData?.Barcode)
+                              handleRemoveProduct(item.data?.Barcode)
                             }
                             disabled={added}
                           >
                             <DeleteIcon />
                           </IconButton>
                         </TableCell>
-                        <TableCell>{item.Barcode}</TableCell>
-                        <TableCell>{item.Product_ID}</TableCell>
-                        <TableCell>{item.Description}</TableCell>
-                        <TableCell>{item.UOM || item.Product_UM}</TableCell>
+                        <TableCell>{item.data?.Barcode}</TableCell>
+                        <TableCell>{item.data?.Product_ID}</TableCell>
+                        <TableCell>{item.data?.Description}</TableCell>
+                        <TableCell>
+                          {item.data?.UOM || item.data?.Product_UM}
+                        </TableCell>
                         {/* <TableCell>{item.quantity}</TableCell> */}
                         {/* <TableCell>
                           <TextField
@@ -793,9 +704,7 @@ export default function EditAdjustment() {
                           allowLeadingZero={false}
                         />
 
-                        <TableCell>
-                          {Number(item.Total_Amount).toFixed(2)}
-                        </TableCell>
+                        <TableCell>{Number(item.total).toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

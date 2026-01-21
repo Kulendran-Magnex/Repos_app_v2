@@ -611,7 +611,7 @@ export default function EditPR() {
 
   const handlePosted = async () => {
     try {
-      await insertBO_Tran_PR(grnCode);
+      await insertBO_Tran_PR(currentItemID);
       toast.success("PR Posted Successfully");
       setPosted(true);
     } catch (error) {

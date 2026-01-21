@@ -36,6 +36,8 @@ import EditPR from "./components/Purchase/PurchaseReturn/EditPR";
 import CreateAdjustment from "./components/Inventory/Adjustment/CreateAdjustment";
 import ViewAdjustment from "./components/Inventory/Adjustment/ViewAdjustment";
 import EditAdjustment from "./components/Inventory/Adjustment/EditAdjustment";
+import CreateTransfer from "./components/Inventory/Transfer/CreateTransfer";
+
 const routes = [
   { path: "/", element: <Homepage /> },
   { path: "/home", element: <Homepage /> },
@@ -95,6 +97,10 @@ const routes = [
   { path: "/test", element: <GRNTemplate /> },
   { path: "/test2", element: <GeneratePDF /> },
   { path: "/test123", element: <MultiSelectCheckbox /> },
+
+  // Inventory Transfer
+
+  { path: "/transfer/create", element: <CreateTransfer />}
 ];
 
 export default routes;
