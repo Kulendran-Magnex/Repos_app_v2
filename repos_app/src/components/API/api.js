@@ -16,6 +16,7 @@ const GRN_URL = "/api/GRN";
 const BO_Tran_URL = "/api/bo_tran";
 const PurchaseReturn_URL = "http://localhost:5000/api/purchaseReturn";
 const Adjustment_URL = "http://localhost:5000/api/adjustment";
+const Transfer_URL = "/api/transfer";
 
 export const fetchPackingMaster = async () => {
   try {
@@ -637,6 +638,43 @@ export const editAdjustment = async (adj_Code, payload) => {
   try {
     const response = await axios.put(`${Adjustment_URL}/${adj_Code}`, payload);
 
+    return response.data;
+  } catch (error) {
+    throw new Error(`Failed to edit data: ${error.message}`);
+  }
+};
+
+////////////////////////////////Transfer////////////////////////////////////////////////////////////
+
+export const addTransfer = async (payload) => {
+  // Map original variable names to internal ones
+  const product_list = payload.productList;
+  const transferHeaderData = payload.headerData;
+  const total_tax = payload.taxSum;
+  const total_sum = payload.totalSum;
+  const poCode_list = payload.addedPOCodes;
+
+  // Build the safe data object to send
+  const dataToSend = {
+    product_list,
+    transferHeaderData,
+    total_tax,
+    total_sum,
+    poCode_list,
+    // Include any other necessary fields from payload, renamed if needed
+  };
+
+  try {
+    const response = await api.post(Transfer_URL, dataToSend);
+    return response.data;
+  } catch (error) {
+    throw new Error(`Failed to fetch data: ${error.message}`);
+  }
+};
+
+export const editTransfer = async (transfer_Code, payload) => {
+  try {
+    const response = await api.put(`${Transfer_URL}/${transfer_Code}`, payload);
     return response.data;
   } catch (error) {
     throw new Error(`Failed to edit data: ${error.message}`);

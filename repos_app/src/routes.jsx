@@ -37,6 +37,8 @@ import CreateAdjustment from "./components/Inventory/Adjustment/CreateAdjustment
 import ViewAdjustment from "./components/Inventory/Adjustment/ViewAdjustment";
 import EditAdjustment from "./components/Inventory/Adjustment/EditAdjustment";
 import CreateTransfer from "./components/Inventory/Transfer/CreateTransfer";
+import EditTransfer from "./components/Inventory/Transfer/EditTransfer";
+import { element } from "prop-types";
 
 const routes = [
   { path: "/", element: <Homepage /> },
@@ -100,7 +102,8 @@ const routes = [
 
   // Inventory Transfer
 
-  { path: "/transfer/create", element: <CreateTransfer />}
+  { path: "/transfer/create", element: <CreateTransfer />},
+  {path: "/transfer/edit", element: <EditTransfer/>}
 ];
 
 export default routes;

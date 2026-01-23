@@ -34,6 +34,7 @@ const purchaseReturnRoutes = require("./routes/Purchase/purchaseReturnRoutes");
 const taxRoutes = require("./routes/taxRoutes");
 const adjustmentRoutes = require("./routes/Inventory/adjustmentRoutes");
 const boTranRoutes = require("./routes/BOTran/boTranRoutes");
+const transferRoutes = require("./routes/Inventory/transferRoutes");
 
 app.use("/auth", authRoutes);
 app.use("/", productRoutes);
@@ -52,6 +53,7 @@ app.use("/api", purchaseReturnRoutes);
 app.use("/api", taxRoutes);
 app.use("/api", adjustmentRoutes);
 app.use("/api", boTranRoutes);
+app.use("/api", transferRoutes);
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);

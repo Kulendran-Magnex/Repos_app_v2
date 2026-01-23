@@ -24,16 +24,22 @@ import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PrintIcon from "@mui/icons-material/Print";
 import {
-  addAdjustment,
+  editAdjustment,
   fetchLocationMaster,
-  addTransfer
+  insertBO_Tran_Adjustment,
+  editTransfer
 } from "../../API/api";
 import SearchDialog from "../../Purchase/PurchaseOrder/SearchDialog";
-import { useNavigate } from "react-router-dom";
+import { fetchTaxGroup } from "../../API/api";
+import axios from "axios";
+import { evaluate } from "mathjs";
+import { useLocation, useNavigate } from "react-router-dom";
 import EditableNumberCell from "../../Common/EditableNumberCell";
 import EditableNumberCell2 from "../../Common/EditableNumberCell2";
 import { useFormNavigation } from "../../../utils/useFormNavigation";
+import GRNSearchDialog from "../../Purchase/GRN/GRNSearchDialog";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PageHeader from "../../Common/PageHeader";
 
 const calculatePrice = async (product) => {
@@ -44,27 +50,41 @@ const calculatePrice = async (product) => {
 
   return {
     ...product,
-    total: subTotal.toFixed(2),
+    Total_Amount: subTotal.toFixed(2),
   };
 };
 
-export default function CreateTransfer() {
+export default function EditTransfer() {
+  const [supplierList, setSupplierList] = useState([]);
   const [locationList, setLocationList] = useState([]);
+  const [taxGroupList, setTaxGroupList] = useState([]);
   const [openAddModal, setOpenAddModal] = useState(false);
+  const [openPOSearch, setOpenPOSearch] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [unitPrice, setUnitPrice] = useState("");
   const [quantity, setQuantity] = useState("");
+  const [discountRate, setDiscountRate] = useState(0);
+  const [discountAmount, setDiscountAmount] = useState("");
   const [total, setTotal] = useState("");
   const [productList, setProductList] = useState([]);
+  const [taxRate, setTaxRate] = useState([]);
+  const [taxAmount, setTaxAmount] = useState([]);
   const [totalSum, setTotalSum] = useState(0);
   const [taxSum, setTaxSum] = useState(0);
   const [editingRowIndex, setEditingRowIndex] = useState(null);
   const today = new Date().toISOString().split("T")[0];
+  const navigate = useNavigate();
+  const [addedGRNCodes, setAddedGRNCodes] = useState([]);
   const { getRef, handleKeyDown } = useFormNavigation(10); // 10 fields
   const [grnCode, setGrnCode] = useState("New");
   const [posted, setPosted] = useState(false);
   const [added, setAdded] = useState(false);
+  const location = useLocation();
+//   const { currentItemID } = location.state || {};
+    const  currentItemID  = "TRA0000000005";
 
-  const [headerData, setHeaderData] = useState({
+
+    const [headerData, setHeaderData] = useState({
     Transfer_ID: "New",
     Transfer_Date: today,
     From_Location: "",
@@ -73,6 +93,9 @@ export default function CreateTransfer() {
     Created_By: "Admin",
     Remarks: "",
   });
+
+
+
 
   const [data, setData] = useState({
     Barcode: "",
@@ -97,6 +120,73 @@ export default function CreateTransfer() {
 
     loadLocationData();
   }, []);
+
+    console.log("Rendered", currentItemID);
+
+  useEffect(() => {
+    if (!currentItemID) return;
+     console.log("Rendered", currentItemID);
+    axios
+      .get(`http://localhost:5000/api/transfer/header/${currentItemID}`)
+      .then((res) => {
+        const data = res.data[0];
+     
+        // Format dates safely or return empty string if null
+        const formatDate = (value) => {
+          if (!value) return ""; // handles null or undefined
+          const date = new Date(value);
+          return isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
+        };
+
+        setHeaderData({
+          Transfer_Date: formatDate(data.Transfer_Date),
+          Transfer_ID: data.Transfer_ID || "",
+          From_Location: data.Location_From_ID || "",
+          To_Location: data.Location_To_ID || "",
+          Status: data.Status === "" || data.Status == null ? 0: Number(data.Status),
+          Remarks: data.Remarks,
+          Created_By: data.Created_By || "",
+        });
+
+        if (data.Status === "P") {
+          setPosted(true);
+        } else {
+          setPosted(false); // optional, if you want to reset when not "P"
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching Transfer Header data:", err);
+      });
+  }, [currentItemID]);
+
+  useEffect(() => {
+    if (!currentItemID) return;
+
+    const fetchGRNTran = async () => {
+      try {
+        const res = await axios.get(
+          `http://localhost:5000/api/transfer/tran/${currentItemID}`
+        );
+        const data = res.data;
+        if (data) {
+          const formattedList = data.map((item) => ({
+            Barcode: item.Barcode,
+            Product_ID: item.Product_ID,
+            Description: item.Description,
+            Product_UM: item.Transfer_UM,
+            Total_Amount: item.Transfer_Cost,
+            quantity: item.Transfer_QTY,
+            unitPrice: item.Unit_Cost,
+          }));
+          setProductList(formattedList);
+        }
+      } catch (err) {
+        console.error("Error fetching PR Tran data:", err);
+      }
+    };
+
+    fetchGRNTran();
+  }, [currentItemID]);
 
   useEffect(() => {
     const price = parseFloat(unitPrice);
@@ -137,6 +227,7 @@ export default function CreateTransfer() {
     const handleKeyDown = (event) => {
       if (event.key === "F1") {
         event.preventDefault(); // ✅ This must come before any return or browser will still react
+        setOpenPOSearch(true);
       }
     };
 
@@ -155,6 +246,8 @@ export default function CreateTransfer() {
 
   //////need to do here
   const handleProductSelect = (product) => {
+   
+    setSelectedProduct(product); // Save selected row from child
     setData({
       Barcode: product.Barcode,
       Product_ID: product.Product_ID,
@@ -168,10 +261,20 @@ export default function CreateTransfer() {
     setOpenAddModal(false); // Optionally close dialog
   };
 
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
     setHeaderData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const handlePRDataChange = (e) => {
+    const { name, value } = e.target;
+
+    setData((prevData) => ({
       ...prevData,
       [name]: value,
     }));
@@ -189,11 +292,10 @@ export default function CreateTransfer() {
   };
 
 
-
   const handleAddToTable = () => {
     // Prevent duplicate item by Barcode
     const isDuplicate = productList.some(
-      (item) => item.data?.Barcode === data.Barcode
+      (item) => item.Barcode === data.Barcode
     );
 
     if (isDuplicate) {
@@ -202,6 +304,7 @@ export default function CreateTransfer() {
       setQuantity("");
       setTotal("");
 
+      //setSelectedProduct(null);
       setData(null);
       return;
     }
@@ -212,11 +315,17 @@ export default function CreateTransfer() {
       toast.error("Please fill in all required fields.");
       return;
     }
-
     const newItem = {
       data,
-      unitPrice,
-      quantity: Number(quantity).toFixed(2),
+      Barcode: data.Barcode,
+      Product_ID: data.Product_ID,
+      Description: data.Description,
+      Product_UM: data.UOM,
+      Total_Amount: total,
+      quantity,
+      unitPrice: data.Unit_Price,
+      // unitPrice,
+      // quantity: Number(quantity).toFixed(2),
       total,
     };
 
@@ -243,10 +352,10 @@ export default function CreateTransfer() {
   };
 
   const handleSubmit = async () => {
-    const { Transfer_Date, From_Location, To_Location, Remarks } = headerData;
+    const { Transfer_Date, From_Location, To_Location } = headerData;
 
     // // Validate required fields
-    if (!Transfer_Date || !From_Location || !To_Location || !Remarks ) {
+    if (!Transfer_Date || !From_Location || !To_Location) {
       toast.error("Please fill in all required fields in header section.");
       return;
     }
@@ -262,37 +371,30 @@ export default function CreateTransfer() {
       productList,
       totalSum,
       taxSum,
+      addedGRNCodes,
     };
 
-    console.log("Payload:", payload);
-
-
-
+  
     try {
-      const result = await addTransfer(payload);
-      console.log("Response:", result);
-      if (result.Transfer_Code) {
-        setHeaderData((prev) => ({
-          ...prev,
-          Transfer_ID: result.Transfer_Code,
-        }))
-        setGrnCode(result.Transfer_Code);
+      const result = await editTransfer(currentItemID, payload);
+      if (result.ADJ_Code) {
+        setGrnCode(result.ADJ_Code);
       }
       setAdded(true);
-      toast.success("Transfer Added");
+      toast.success("Adjustment Added");
     } catch (error) {
-      toast.error("Failed to add Transfer.");
+      toast.error("Failed to add Adjustment.");
       console.error("Insert failed:", error.message);
     }
   };
 
   const handlePosted = async () => {
     try {
-      // await insertBO_Tran_PR(grnCode);
-      toast.success("PR Posted Successfully");
+      await insertBO_Tran_Adjustment(grnCode);
+      toast.success("Adjustment Posted Successfully");
       setPosted(true);
     } catch (error) {
-      toast.error("Failed to Post PR.");
+      toast.error("Failed to Post Adjustment.");
       console.error("Post failed:", error.message);
     }
   };
@@ -395,7 +497,7 @@ export default function CreateTransfer() {
                   <InputLabel>Status</InputLabel>
                   <Select
                     name="Status"
-                    value={headerData.Status}
+                    value={Number(headerData.Status)}
                     label="Status"
                     onChange={handleInputChange}
                     MenuProps={{
@@ -414,7 +516,7 @@ export default function CreateTransfer() {
                 </FormControl>
               </Box>
 
-                <TextField
+                     <TextField
                 label="Created By"
                 name="Created_By"
                 value={headerData.Created_By}
@@ -494,9 +596,9 @@ export default function CreateTransfer() {
                 </FormControl>
               </Box>
 
-           
+             
 
-            
+       
 
               <TextField
                 label="Remarks"
@@ -633,7 +735,7 @@ export default function CreateTransfer() {
             <Box display="flex" justifyContent="center" mt={2}>
               <TableContainer component={Paper} sx={{ width: "100%" }}>
                 <Table>
-                  <TableHead>
+                  <TableHead sx={{ backgroundColor: "whitesmoke" }}>
                     <TableRow>
                       <TableCell></TableCell>
                       <TableCell>
@@ -674,12 +776,10 @@ export default function CreateTransfer() {
                             <DeleteIcon />
                           </IconButton>
                         </TableCell>
-                        <TableCell>{item.data?.Barcode}</TableCell>
-                        <TableCell>{item.data?.Product_ID}</TableCell>
-                        <TableCell>{item.data?.Description}</TableCell>
-                        <TableCell>
-                          {item.data?.UOM || item.data?.Product_UM}
-                        </TableCell>
+                        <TableCell>{item.Barcode}</TableCell>
+                        <TableCell>{item.Product_ID}</TableCell>
+                        <TableCell>{item.Description}</TableCell>
+                        <TableCell>{item.UOM || item.Product_UM}</TableCell>
                         {/* <TableCell>{item.quantity}</TableCell> */}
                         {/* <TableCell>
                           <TextField
@@ -712,7 +812,9 @@ export default function CreateTransfer() {
                           allowLeadingZero={false}
                         />
 
-                        <TableCell>{Number(item.total).toFixed(2)}</TableCell>
+                        <TableCell>
+                          {Number(item.Total_Amount).toFixed(2)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

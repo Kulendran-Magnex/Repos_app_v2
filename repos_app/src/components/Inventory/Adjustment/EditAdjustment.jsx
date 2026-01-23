@@ -29,16 +29,12 @@ import {
   insertBO_Tran_Adjustment
 } from "../../API/api";
 import SearchDialog from "../../Purchase/PurchaseOrder/SearchDialog";
-import { fetchTaxGroup } from "../../API/api";
 import axios from "axios";
-import { evaluate } from "mathjs";
 import { useLocation, useNavigate } from "react-router-dom";
 import EditableNumberCell from "../../Common/EditableNumberCell";
 import EditableNumberCell2 from "../../Common/EditableNumberCell2";
 import { useFormNavigation } from "../../../utils/useFormNavigation";
-import GRNSearchDialog from "../../Purchase/GRN/GRNSearchDialog";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PageHeader from "../../Common/PageHeader";
 
 const calculatePrice = async (product) => {
@@ -54,25 +50,20 @@ const calculatePrice = async (product) => {
 };
 
 export default function EditAdjustment() {
-  const [supplierList, setSupplierList] = useState([]);
+  
   const [locationList, setLocationList] = useState([]);
-  const [taxGroupList, setTaxGroupList] = useState([]);
+ 
   const [openAddModal, setOpenAddModal] = useState(false);
   const [openPOSearch, setOpenPOSearch] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [unitPrice, setUnitPrice] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [discountRate, setDiscountRate] = useState(0);
-  const [discountAmount, setDiscountAmount] = useState("");
   const [total, setTotal] = useState("");
   const [productList, setProductList] = useState([]);
-  const [taxRate, setTaxRate] = useState([]);
-  const [taxAmount, setTaxAmount] = useState([]);
   const [totalSum, setTotalSum] = useState(0);
   const [taxSum, setTaxSum] = useState(0);
   const [editingRowIndex, setEditingRowIndex] = useState(null);
   const today = new Date().toISOString().split("T")[0];
-  const navigate = useNavigate();
   const [addedGRNCodes, setAddedGRNCodes] = useState([]);
   const { getRef, handleKeyDown } = useFormNavigation(10); // 10 fields
   const [grnCode, setGrnCode] = useState("New");

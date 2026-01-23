@@ -127,6 +127,7 @@ export default function EditGRN() {
     Credit_Period: "",
     Payment_Due: "",
     TaxGroup: "",
+    GRN_Status: "",
   });
 
   const [grnData, setGRNData] = useState({
@@ -180,85 +181,52 @@ export default function EditGRN() {
     loadTaxGroup();
   }, []);
 
-  // useEffect(() => {
-  //   if (!currentItemID) return;
-
-    
-
-  //   axios
-  //     .get(`http://localhost:5000/api/GRN_Header/${currentItemID}`)
-  //     .then((res) => {
-  //       const data = res.data[0];
-  //       // Format dates safely or return empty string if null
-  //       const formatDate = (value) => {
-  //         if (!value) return ""; // handles null or undefined
-  //         const date = new Date(value);
-  //         return isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
-  //       };
-
-  //       setGRNHeaderData({
-  //         GRN_Date: formatDate(data.GRN_Date),
-  //         PO_Code: data.PO_Code || "",
-  //         Location: data.Location_ID || "",
-  //         Supplier: data.Supplier_Code || "",
-  //         Invoice_No: data.Invoice_No || "",
-  //         Invoice_Date: formatDate(data.Invoice_Date),
-  //         GRN_Type: data.GRN_Type || "",
-  //         Credit_Period: "", // fill later if needed
-  //         Payment_Due: formatDate(data.Payment_Due_Date),
-  //         TaxGroup: "", // fill later if needed
-  //         GRN_Status: data.GRN_Status,
-  //       });
-
-  //       if (data.GRN_Status === "P") {
-  //         setPosted(true);
-  //       } else {
-  //         setPosted(false); // optional, if you want to reset when not "P"
-  //       }
-  //     })
-  //     .catch((err) => {
-  //       console.error("Error fetching GRN Header data:", err);
-  //     });
-  // }, [currentItemID]);
+ 
 
   useEffect(() => {
     if (!currentItemID) return;
 
     const loadGRNHeader = async () => {
       try {
-        await fetchGRNHeaderbyID(currentItemID).then(res => {
-          const data = res;
-          console.log("Header:,", data);
-          const formatDate = (value) => {
-            if (!value) return ""; // handles null or undefined
-            const date = new Date(value);
-            return isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
-          };
+        const data = await fetchGRNHeaderbyID(currentItemID);
+        console.log("Header data:", data);
+        console.log("GRN_Status value:", data.GRN_Status);
+        
+        const formatDate = (value) => {
+          if (!value) return ""; // handles null or undefined
+          const date = new Date(value);
+          return isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
+        };
 
-          setGRNHeaderData({
-            GRN_Date: formatDate(data.GRN_Date),
-            PO_Code: data.PO_Code || "",
-            Location: data.Location_ID || "",
-            Supplier: data.Supplier_Code || "",
-            Invoice_No: data.Invoice_No || "",
-            Invoice_Date: formatDate(data.Invoice_Date),
-            GRN_Type: data.GRN_Type || "",
-            Credit_Period: "", // fill later if needed
-            Payment_Due: formatDate(data.Payment_Due_Date),
-            TaxGroup: "", // fill later if needed
-            GRN_Status: data.GRN_Status,
-          });
-
-          if (data.GRN_Status === "P") {
-            setPosted(true);
-          } else {
-            setPosted(false); // optional, if you want to reset when not "P"
-          }
+        setGRNHeaderData({
+          GRN_Date: formatDate(data.GRN_Date),
+          PO_Code: data.PO_Code || "",
+          Location: data.Location_ID || "",
+          Supplier: data.Supplier_Code || "",
+          Invoice_No: data.Invoice_No || "",
+          Invoice_Date: formatDate(data.Invoice_Date),
+          GRN_Type: data.GRN_Type || "",
+          Credit_Period: "", // fill later if needed
+          Payment_Due: formatDate(data.Payment_Due_Date),
+          TaxGroup: "", // fill later if needed
+          GRN_Status: data.GRN_Status,
         });
+
+        console.log("Checking status - data.GRN_Status:", JSON.stringify(data.GRN_Status), "Type:", typeof data.GRN_Status);
+        
+        const status = String(data.GRN_Status || "").trim();
+        console.log("Trimmed status:", JSON.stringify(status));
+        
+        if (status === "P") {
+          console.log("Setting posted to true");
+          setPosted(true);
+        } else {
+          console.log("Setting posted to false, status was:", JSON.stringify(status));
+          setPosted(false);
+        }
       } catch (err) {
          console.error("Error fetching GRN Header data:", err);
       }
-      
     };
 
     loadGRNHeader();
@@ -305,50 +273,7 @@ export default function EditGRN() {
     loadGRNTran();
   }, [currentItemID]);
 
-    // useEffect(() => {
-  //   if (!currentItemID) return;
-
-  //   const fetchGRNTran = async () => {
-  //     try {
-  //       const res = await axios.get(
-  //         `http://localhost:5000/api/GRN_Tran/${currentItemID}`
-  //       );
-  //       const data = res.data;
-  //       if (data) {
-  //         const formattedList = data.map((item) => ({
-  //           Barcode: item.Barcode,
-  //           Description: item.Description,
-  //           Discount_Amount: item.Discount_Amount,
-  //           Discount_Percent: item.Discount_Percent,
-  //           Exp_Date: item.Exp_Date,
-  //           FOC: item.FOC,
-  //           Product_ID: item.Product_ID,
-  //           Product_UM: item.Product_UM,
-  //           TaxGroup: item.Tax_Group_Code,
-  //           Tax_Amount: item.Tax_Amount,
-  //           Total_Amount: item.Total_Amount,
-  //           quantity: item.GRN_Qty,
-  //           unitPrice: item.Unit_Price,
-  //           MRP: item.MRP,
-  //           Retail_Price: item.Retail_Price,
-  //         }));
-  //         setProductList(formattedList);
-
-  //         // Set TaxGroup from first item if available
-  //         if (formattedList.length > 0 && formattedList[0].TaxGroup) {
-  //           setGRNHeaderData((prev) => ({
-  //             ...prev,
-  //             TaxGroup: formattedList[0].TaxGroup,
-  //           }));
-  //         }
-  //       }
-  //     } catch (err) {
-  //       console.error("Error fetching GRN Tran data:", err);
-  //     }
-  //   };
-
-  //   fetchGRNTran();
-  // }, [currentItemID]);
+   
 
   useEffect(() => {
     if (grnHeaderData.Invoice_Date && grnHeaderData.Credit_Period >= 0) {
@@ -757,6 +682,12 @@ export default function EditGRN() {
     }
   };
 
+  useEffect(() => {
+    console.log("Posted state updated:", posted);
+  }, [posted]);
+
+  console.log("Render - status:", posted);
+
   return (
     <div>
       <Toaster reverseOrder={false} />
@@ -781,7 +712,7 @@ export default function EditGRN() {
           </Tooltip>
           {!isEditing && (
             <Chip
-              label="View only"
+              label={posted ? "Posted" : "View only"}
               icon={<LockIcon />}
               size="small"
               sx={{ ml: 1, alignSelf: 'center' }}
@@ -868,7 +799,7 @@ export default function EditGRN() {
               onChange={handleInputChange}
               fullWidth
               margin="normal"
-              InputProps={{ readOnly: !isEditing }}
+              InputProps={{ readOnly: !isEditing || posted }}
               required
             />
             <Box display={"flex"} flexDirection={"row"} columnGap={1}>
@@ -889,7 +820,7 @@ export default function EditGRN() {
                 sx={{ maxWidth: 200, marginTop: 3, marginBottom: 4 }}
                 onClick={handlePOSearch}
                 variant="outlined"
-                disabled={!isEditing}
+                disabled={!isEditing || posted}
               >
                 Search
               </Button>
@@ -915,7 +846,7 @@ export default function EditGRN() {
                       inputRef={getRef(2)}
                       onKeyDown={handleKeyDown(2)}
                       required
-                      InputProps={{ readOnly: !isEditing }}
+                      InputProps={{ readOnly: !isEditing || posted }}
                       // error={!poHeaderData.Location}
                     />
                   )}
@@ -927,7 +858,7 @@ export default function EditGRN() {
                   isOptionEqualToValue={(option, value) =>
                     option.Location_ID === value.Location_ID
                   }
-                  disabled={!isEditing}
+                  disabled={!isEditing || posted}
                 />
               </FormControl>
             </Box>
@@ -951,7 +882,7 @@ export default function EditGRN() {
                     onKeyDown={handleKeyDown(3)}
                     required
                     label="Supplier"
-                    InputProps={{ readOnly: !isEditing }}
+                    InputProps={{ readOnly: !isEditing || posted }}
                   />
                 )}
                 value={
@@ -962,7 +893,7 @@ export default function EditGRN() {
                 isOptionEqualToValue={(option, value) =>
                   option.Supplier_Code === value.Supplier_Code
                 }
-                disabled={!isEditing}
+                disabled={!isEditing || posted}
               />
             </FormControl>
 
@@ -976,7 +907,7 @@ export default function EditGRN() {
               onKeyDown={handleKeyDown(4)}
               margin="normal"
               required
-              InputProps={{ readOnly: !isEditing }}
+              InputProps={{ readOnly: !isEditing || posted }}
               fullWidth
             />
 
@@ -994,11 +925,11 @@ export default function EditGRN() {
                 shrink: true,
               }}
               required
-              InputProps={{ readOnly: !isEditing }}
+              InputProps={{ readOnly: !isEditing || posted }}
             />
 
             <Box>
-              {isEditing ? (
+              {isEditing && !posted ? (
                 <FormControl fullWidth margin="normal">
                   <InputLabel>GRN Type</InputLabel>
                   <Select
@@ -1050,7 +981,7 @@ export default function EditGRN() {
               onKeyDown={handleKeyDown(7)}
               margin="normal"
               type="number"
-              InputProps={{ readOnly: !isEditing }}
+              InputProps={{ readOnly: !isEditing || posted }}
             />
 
             <TextField
@@ -1066,7 +997,7 @@ export default function EditGRN() {
               InputLabelProps={{
                 shrink: true,
               }}
-              disabled={!isEditing}
+              disabled={!isEditing || posted}
               required
             />
 
@@ -1089,7 +1020,7 @@ export default function EditGRN() {
                       inputRef={getRef(9)}
                       onKeyDown={handleKeyDown(9)}
                       label="Tax Group"
-                      InputProps={{ readOnly: !isEditing }}
+                      InputProps={{ readOnly: !isEditing || posted }}
                       // error={!poHeaderData.Location}
                     />
                   )}
@@ -1101,7 +1032,7 @@ export default function EditGRN() {
                   isOptionEqualToValue={(option, value) =>
                     option.taxGroupCode === value.taxGroupCode
                   }
-                  disabled={!isEditing}
+                  disabled={!isEditing || posted}
                 />
               </FormControl>
             </Box>
@@ -1170,7 +1101,7 @@ export default function EditGRN() {
                       sx={{ maxWidth: 200, marginTop: 3, marginBottom: 4 }}
                       variant="outlined"
                       onClick={handleSearch}
-                      disabled={!isEditing}
+                      disabled={!isEditing || posted}
                     >
                       Search
                     </Button>
@@ -1215,7 +1146,7 @@ export default function EditGRN() {
                     value={unitPrice}
                     onChange={(e) => setUnitPrice(e.target.value)}
                     type="number"
-                    InputProps={{ readOnly: !isEditing }}
+                    InputProps={{ readOnly: !isEditing || posted }}
                     fullWidth
                   />
                   <TextField
@@ -1224,7 +1155,7 @@ export default function EditGRN() {
                     value={quantity}
                     onChange={(e) => setQuantity(e.target.value)}
                     type="number"
-                    InputProps={{ readOnly: !isEditing }}
+                    InputProps={{ readOnly: !isEditing || posted }}
                     fullWidth
                   />
 
@@ -1235,7 +1166,7 @@ export default function EditGRN() {
                     value={grnData?.FOC}
                     onChange={handleGRNDataChange}
                     type="number"
-                    InputProps={{ readOnly: !isEditing }}
+                    InputProps={{ readOnly: !isEditing || posted }}
                     fullWidth
                   />
 
@@ -1250,7 +1181,7 @@ export default function EditGRN() {
                     InputLabelProps={{
                       shrink: true,
                     }}
-                    InputProps={{ readOnly: !isEditing }}
+                    InputProps={{ readOnly: !isEditing || posted }}
                     required
                   />
                   <TextField
@@ -1269,7 +1200,7 @@ export default function EditGRN() {
                     }}
                     type="number"
                     inputProps={{ min: 0, max: 100 }}
-                    InputProps={{ readOnly: !isEditing }}
+                    InputProps={{ readOnly: !isEditing || posted }}
                     fullWidth
                   />
                   <TextField
@@ -1286,7 +1217,7 @@ export default function EditGRN() {
                     value={grnData?.Retail_Price}
                     onChange={handleGRNDataChange}
                     margin="normal"
-                    InputProps={{ readOnly: !isEditing }}
+                    InputProps={{ readOnly: !isEditing || posted }}
                     fullWidth
                   />
 
@@ -1296,7 +1227,7 @@ export default function EditGRN() {
                     value={grnData?.MRP}
                     onChange={handleGRNDataChange}
                     margin="normal"
-                    InputProps={{ readOnly: !isEditing }}
+                    InputProps={{ readOnly: !isEditing || posted }}
                     fullWidth
                   />
 
@@ -1326,7 +1257,7 @@ export default function EditGRN() {
                       marginBottom: 4,
                     }} // px controls horizontal padding inside the button
                     onClick={handleAddToTable}
-                    disabled={!isEditing}
+                    disabled={!isEditing || posted}
                   >
                     Add
                   </Button>
@@ -1402,7 +1333,7 @@ export default function EditGRN() {
                           <IconButton
                             color="error"
                             onClick={() => handleRemoveProduct(item.Barcode)}
-                            disabled={!isEditing}
+                            disabled={!isEditing || posted}
                           >
                             <DeleteIcon />
                           </IconButton>

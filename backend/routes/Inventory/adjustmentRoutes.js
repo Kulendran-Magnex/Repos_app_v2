@@ -6,9 +6,12 @@ const adjustmentController = require("../../controllers/Inventory/adjustmentCont
 router.get("/adjustment_header", adjustmentController.getAdjustmentHeader);
 router.get(
   "/adjustment_header/:id",
-  adjustmentController.getAdjustmentHeaderByID
+  adjustmentController.getAdjustmentHeaderByID,
 );
-router.get("/adjustment_detail/:id", adjustmentController.getAdjustmentranByID);
+router.get(
+  "/adjustment_detail/:id",
+  adjustmentController.getAdjustmentTranByID,
+);
 router.post("/adjustment", adjustmentController.createAdjustment);
 router.put("/adjustment/:ADJ_Code", adjustmentController.updateAdjustment);
 module.exports = router;

@@ -1,15 +1,12 @@
 const db = require("../../config/db");
 const client_id = "940T0003";
 
-/* ================================
-   Get Adjustment Header (All)
-================================ */
-exports.getAdjustmentHeader = async (req, res) => {
+exports.getTransferHeader = async (req, res) => {
   try {
     const { rows } = await db.query(
       `
       SELECT *
-      FROM adjustment_header
+      FROM transfer_header
       WHERE "Client_ID" = $1
       ORDER BY "Creation_Date" DESC
       `,
@@ -27,16 +24,13 @@ exports.getAdjustmentHeader = async (req, res) => {
   }
 };
 
-/* ================================
-   Get Adjustment Header By ID
-================================ */
-exports.getAdjustmentHeaderByID = async (req, res) => {
+exports.getTransferHeaderByID = async (req, res) => {
   try {
     const { rows } = await db.query(
       `
       SELECT *
-      FROM adjustment_header
-      WHERE "Adjustment_ID" = $1
+      FROM transfer_header
+      WHERE "Transfer_ID" = $1
         AND "Client_ID" = $2
       ORDER BY "Creation_Date" DESC
       `,
@@ -54,16 +48,13 @@ exports.getAdjustmentHeaderByID = async (req, res) => {
   }
 };
 
-/* ================================
-   Get Adjustment Detail By ID
-================================ */
-exports.getAdjustmentTranByID = async (req, res) => {
+exports.getTransferTranByID = async (req, res) => {
   try {
     const { rows } = await db.query(
       `
       SELECT *
-      FROM adjustment_detail
-      WHERE "Adjustment_ID" = $1
+      FROM transfer_detail
+      WHERE "Transfer_ID" = $1
         AND "Client_ID" = $2
       `,
       [req.params.id, client_id],
@@ -80,7 +71,7 @@ exports.getAdjustmentTranByID = async (req, res) => {
   }
 };
 
-exports.createAdjustment = async (req, res) => {
+exports.createTransfer = async (req, res) => {
   // const client_id = req.user?.client_id; // from token later
   const client_id = "940T0003";
 
@@ -88,10 +79,16 @@ exports.createAdjustment = async (req, res) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  const { adjHeaderData, product_list } = req.body;
+  const { transferHeaderData, product_list } = req.body;
 
-  const { Created_By, Adj_Date, Location, Posting_Type, Adj_Status, Remarks } =
-    adjHeaderData;
+  const {
+    Created_By,
+    Transfer_Date,
+    From_Location,
+    To_Location,
+    Status,
+    Remarks,
+  } = transferHeaderData;
 
   const currentDate = new Date();
   const client = await db.connect();
@@ -104,78 +101,77 @@ exports.createAdjustment = async (req, res) => {
     =============================== */
     const { rows } = await client.query(
       `
-      SELECT "Adjustment_ID"
-      FROM adjustment_header
+      SELECT "Transfer_ID"
+      FROM transfer_header
       WHERE "Client_ID" = $1
-      ORDER BY "Adjustment_ID" DESC
+      ORDER BY "Transfer_ID" DESC
       LIMIT 1
       `,
       [client_id],
     );
 
-    let nextId = "ADJ0000000001";
+    let nextId = "TRA0000000001";
 
     if (rows.length > 0) {
-      const lastNumber = parseInt(rows[0].Adjustment_ID.substring(3), 10);
-      nextId = `ADJ${String(lastNumber + 1).padStart(10, "0")}`;
+      const lastNumber = parseInt(rows[0].Transfer_ID.substring(3), 10);
+      nextId = `TRA${String(lastNumber + 1).padStart(10, "0")}`;
     }
 
     /* ===============================
-       2️⃣ Insert Adjustment Header
+       2️⃣ Insert Transfer Header
     =============================== */
     await client.query(
       `
-      INSERT INTO adjustment_header (
-        "Adjustment_ID",
-        "Location_ID",
+      INSERT INTO transfer_header (
+        "Transfer_ID",
+        "Location_From_ID",
+        "Location_To_ID",
         "Created_By",
         "Creation_Date",
-        "Adjustment_Date",
+        "Transfer_Date",
         "Status",
         "Remarks",
-        "Posting_Type",
         "Client_ID"
       )
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
       `,
       [
         nextId,
-        Location,
+        From_Location,
+        To_Location,
         Created_By,
         currentDate,
-        Adj_Date,
-        Adj_Status,
+        Transfer_Date,
+        Status,
         Remarks,
-        Posting_Type,
         client_id,
       ],
     );
 
-    /* ===============================
-       3️⃣ Prepare UNNEST arrays
-    =============================== */
-    const Adjustment_IDs = [];
-    const Location_IDs = [];
+    //need to implement to transfer deatails insertion
+
+    const Transfer_IDs = [];
+    const From_Locations = [];
     const Product_IDs = [];
     const Descriptions = [];
-    const Adjustment_UMs = [];
-    const Adjustment_QTYs = [];
-    const Adjustment_Costs = [];
+    const Transfer_UMs = [];
+    const Transfer_QTYs = [];
+    const Transfer_Costs = [];
     const Unit_Costs = [];
     const Entry_Dates = [];
     const Barcodes = [];
     const Client_IDs = [];
 
     product_list.forEach((item) => {
-      const p = item.adjData || {};
+      const p = item.data || {};
 
-      Adjustment_IDs.push(nextId);
-      Location_IDs.push(Location);
+      Transfer_IDs.push(nextId);
+      From_Locations.push(From_Location);
       Product_IDs.push(p.Product_ID || "");
       Descriptions.push(p.Description || "");
-      Adjustment_UMs.push(p.Product_UM || p.UOM || "");
-      Adjustment_QTYs.push(Number(item.quantity) || 0);
-      Adjustment_Costs.push(Number(item.total) || 0);
+      Transfer_UMs.push(p.Product_UM || p.UOM || "");
+      Transfer_QTYs.push(Number(item.quantity) || 0);
+      Transfer_Costs.push(Number(item.total) || 0);
       Unit_Costs.push(Number(item.unitPrice) || 0);
       Entry_Dates.push(currentDate);
       Barcodes.push(p.Barcode || "");
@@ -187,14 +183,14 @@ exports.createAdjustment = async (req, res) => {
     =============================== */
     await client.query(
       `
-      INSERT INTO adjustment_detail (
-        "Adjustment_ID",
-        "Location_ID",
+      INSERT INTO transfer_detail (
+        "Transfer_ID",
+        "Location_From_ID",
         "Product_ID",
         "Description",
-        "Adjustment_UM",
-        "Adjustment_QTY",
-        "Adjustment_Cost",
+        "Transfer_UM",
+        "Transfer_QTY",
+        "Transfer_Cost",
         "Unit_Cost",
         "Entry_Date",
         "Barcode",
@@ -216,13 +212,13 @@ exports.createAdjustment = async (req, res) => {
       )
       `,
       [
-        Adjustment_IDs,
-        Location_IDs,
+        Transfer_IDs,
+        From_Locations,
         Product_IDs,
         Descriptions,
-        Adjustment_UMs,
-        Adjustment_QTYs,
-        Adjustment_Costs,
+        Transfer_UMs,
+        Transfer_QTYs,
+        Transfer_Costs,
         Unit_Costs,
         Entry_Dates,
         Barcodes,
@@ -233,12 +229,12 @@ exports.createAdjustment = async (req, res) => {
     await client.query("COMMIT");
 
     return res.status(201).json({
-      message: "Adjustment added successfully",
-      Adjustment_Code: nextId,
+      message: "Transfer added successfully",
+      Transfer_Code: nextId,
     });
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("Adjustment Transaction Error:", err);
+    console.error("Transfer Transaction Error:", err);
 
     return res.status(500).json({
       message: "Database error",
@@ -249,8 +245,8 @@ exports.createAdjustment = async (req, res) => {
   }
 };
 
-exports.updateAdjustment = async (req, res) => {
-  const { ADJ_Code } = req.params;
+exports.updateTransfer = async (req, res) => {
+  const { Transfer_Code } = req.params;
   // const client_id = req.user?.client_id;
   const client_id = "940T0003";
 
@@ -258,10 +254,16 @@ exports.updateAdjustment = async (req, res) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  const { adjHeaderData, productList } = req.body;
+  const { headerData, productList } = req.body;
 
-  const { Created_By, Adj_Date, Location, Posting_Type, Adj_Status, Remarks } =
-    adjHeaderData;
+  const {
+    Created_By,
+    Transfer_Date,
+    From_Location,
+    To_Location,
+    Status,
+    Remarks,
+  } = headerData;
 
   const currentDate = new Date();
   const client = await db.connect();
@@ -274,33 +276,33 @@ exports.updateAdjustment = async (req, res) => {
     =============================== */
     const updateHeaderResult = await client.query(
       `
-      UPDATE adjustment_header
+      UPDATE transfer_header
       SET
-        "Location_ID"     = $1,
-        "Modified_By"     = $2,
-        "Modified_Date"   = $3,
-        "Adjustment_Date" = $4,
-        "Status"          = $5,
-        "Remarks"         = $6,
-        "Posting_Type"    = $7
-      WHERE "Adjustment_ID" = $8
+        "Location_From_ID"     = $1,
+        "Location_To_ID"    =$2,
+        "Modified_By"     = $3,
+        "Modified_Date"   = $4,
+        "Transfer_Date" = $5,
+        "Status"          = $6,
+        "Remarks"         = $7
+      WHERE "Transfer_ID" = $8
         AND "Client_ID"     = $9
       `,
       [
-        Location,
+        From_Location,
+        To_Location,
         Created_By,
         currentDate,
-        Adj_Date,
-        Adj_Status,
+        Transfer_Date,
+        Status,
         Remarks,
-        Posting_Type,
-        ADJ_Code,
+        Transfer_Code,
         client_id,
       ],
     );
 
     if (updateHeaderResult.rowCount === 0) {
-      throw new Error("Adjustment header not found or not updated");
+      throw new Error("Transfer header not found or not updated");
     }
 
     /* ===============================
@@ -308,37 +310,37 @@ exports.updateAdjustment = async (req, res) => {
     =============================== */
     await client.query(
       `
-      DELETE FROM adjustment_detail
-      WHERE "Adjustment_ID" = $1
+      DELETE FROM transfer_detail
+      WHERE "Transfer_ID" = $1
         AND "Client_ID"     = $2
       `,
-      [ADJ_Code, client_id],
+      [Transfer_Code, client_id],
     );
 
     /* ===============================
        3️⃣ Prepare UNNEST arrays
     =============================== */
     if (Array.isArray(productList) && productList.length > 0) {
-      const Adjustment_IDs = [];
-      const Location_IDs = [];
+      const Transfer_IDs = [];
+      const From_Locations = [];
       const Product_IDs = [];
       const Descriptions = [];
-      const Adjustment_UMs = [];
-      const Adjustment_QTYs = [];
-      const Adjustment_Costs = [];
+      const Transfer_UMs = [];
+      const Transfer_QTYs = [];
+      const Transfer_Costs = [];
       const Unit_Costs = [];
       const Entry_Dates = [];
       const Barcodes = [];
       const Client_IDs = [];
 
       productList.forEach((item) => {
-        Adjustment_IDs.push(ADJ_Code);
-        Location_IDs.push(Location);
+        Transfer_IDs.push(Transfer_Code);
+        From_Locations.push(From_Location);
         Product_IDs.push(item.Product_ID || "");
         Descriptions.push(item.Description || "");
-        Adjustment_UMs.push(item.Product_UM || item.UOM || "");
-        Adjustment_QTYs.push(Number(item.quantity) || 0);
-        Adjustment_Costs.push(Number(item.Total_Amount) || 0);
+        Transfer_UMs.push(item.Product_UM || item.UOM || "");
+        Transfer_QTYs.push(Number(item.quantity) || 0);
+        Transfer_Costs.push(Number(item.Total_Amount) || 0);
         Unit_Costs.push(Number(item.unitPrice) || 0);
         Entry_Dates.push(currentDate);
         Barcodes.push(item.Barcode || "");
@@ -350,14 +352,14 @@ exports.updateAdjustment = async (req, res) => {
       =============================== */
       await client.query(
         `
-        INSERT INTO adjustment_detail (
-          "Adjustment_ID",
-          "Location_ID",
+        INSERT INTO transfer_detail (
+          "Transfer_ID",
+          "Location_From_ID",
           "Product_ID",
           "Description",
-          "Adjustment_UM",
-          "Adjustment_QTY",
-          "Adjustment_Cost",
+          "Transfer_UM",
+          "Transfer_QTY",
+          "Transfer_Cost",
           "Unit_Cost",
           "Entry_Date",
           "Barcode",
@@ -379,13 +381,13 @@ exports.updateAdjustment = async (req, res) => {
         )
         `,
         [
-          Adjustment_IDs,
-          Location_IDs,
+          Transfer_IDs,
+          From_Locations,
           Product_IDs,
           Descriptions,
-          Adjustment_UMs,
-          Adjustment_QTYs,
-          Adjustment_Costs,
+          Transfer_UMs,
+          Transfer_QTYs,
+          Transfer_Costs,
           Unit_Costs,
           Entry_Dates,
           Barcodes,
@@ -397,12 +399,12 @@ exports.updateAdjustment = async (req, res) => {
     await client.query("COMMIT");
 
     return res.json({
-      message: "Adjustment updated successfully",
-      ADJ_Code,
+      message: "Transfer updated successfully",
+      Transfer_Code,
     });
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("Update Adjustment Error:", err);
+    console.error("Update Transfer Error:", err);
 
     return res.status(500).json({
       message: "Database error",
