@@ -539,6 +539,15 @@ export const insertBO_Tran_Adjustment = async (id) => {
   }
 };
 
+export const insertBO_Tran_Transfer = async (id) => {
+  try {
+    const response = await api.post(`${BO_Tran_URL}withTransfer/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(`Failed to insert BO data: ${error.message}`);
+  }
+};
+
 //////////////////////////////////////////////////////////////////Purchase Return //////////////////////////////////////////////////////
 export const addPurchaseReturn = async (payload) => {
   console.log("Payload in addPurchaseReturn:", payload);

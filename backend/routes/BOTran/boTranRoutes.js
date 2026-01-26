@@ -8,5 +8,8 @@ router.post(
   "/bo_tranwithAdjustment/:AD_Code",
   boTranController.createBOTranFromAdjustment,
 );
-
+router.post(
+  "/bo_tranwithTransfer/:Transfer_Code",
+  boTranController.createBOTranFromTransfer,
+);
 module.exports = router;

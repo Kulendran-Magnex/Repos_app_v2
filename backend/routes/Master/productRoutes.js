@@ -12,7 +12,7 @@ router.get("/searchProducts", productController.searchProducts);
 router.get("/products/:product_id", productController.getProductOne);
 router.get(
   "/productsDetails/:product_id",
-  productController.getProductDetailsByID
+  productController.getProductDetailsByID,
 );
 router.put("/products/:id", productController.updateProductByID);
 // router.post("/productDetails/add", productController.insertProductDetails);
@@ -20,6 +20,7 @@ router.put("/products/:id", productController.updateProductByID);
 // router.put("/productDetails/:id", productController.updateProductDetails);
 router.get("/price/:id", productController.getProductPrice);
 // router.put("/price/:id", productController.updateProductPriceById);
+router.post("/getAverageCost", productController.getAverageCostByBarcode);
 
 // Add other endpoints similarly
 

@@ -10,7 +10,7 @@ exports.getCategories = async (req, res) => {
       `SELECT *
        FROM "category_lvl1"
        WHERE "Client_id" = $1`,
-      [client_id]
+      [client_id],
     );
 
     if (result.rowCount === 0) {
@@ -42,7 +42,7 @@ exports.getProducts = async (req, res) => {
       JOIN "product_price" pp ON p."Product_ID" = pp."Product_ID"
       JOIN "category_lvl1" c ON p."Category_Lv1" = c."Cat_Code"
       WHERE p."Client_id" = $1`,
-      [client_id]
+      [client_id],
     );
 
     if (result.rowCount === 0) {
@@ -78,7 +78,7 @@ exports.searchProducts = async (req, res) => {
       JOIN "product_price" pp ON pd."Barcode" = pp."Barcode"
       JOIN "category_lvl1" c ON p."Category_Lv1" = c."Cat_Code"
       WHERE p."Client_id" = $1`,
-      [client_id]
+      [client_id],
     );
 
     if (result.rowCount === 0) {
@@ -102,7 +102,7 @@ exports.getProductOne = async (req, res) => {
        FROM "products"
        WHERE "Client_id" = $1
          AND "Product_ID" = $2`,
-      [client_id, req.params.product_id]
+      [client_id, req.params.product_id],
     );
 
     if (result.rowCount === 0) {
@@ -126,7 +126,7 @@ exports.getProductDetailsByID = async (req, res) => {
        FROM "product_details"
        WHERE "Client_id" = $1
          AND "Product_ID" = $2`,
-      [client_id, req.params.product_id]
+      [client_id, req.params.product_id],
     );
 
     if (result.rowCount === 0) {
@@ -166,7 +166,7 @@ exports.updateProductByID = async (req, res) => {
          "Warranty_Type"=$16
        WHERE "Product_ID"=$17
          AND "Client_id"=$18`,
-      [...Object.values(req.body), req.params.id, client_id]
+      [...Object.values(req.body), req.params.id, client_id],
     );
 
     if (result.rowCount === 0) {
@@ -190,7 +190,7 @@ exports.getProductPrice = async (req, res) => {
        FROM "product_price"
        WHERE "Client_id" = $1
          AND "Product_ID" = $2`,
-      [client_id, req.params.id]
+      [client_id, req.params.id],
     );
 
     if (result.rowCount === 0) {
@@ -198,6 +198,26 @@ exports.getProductPrice = async (req, res) => {
     }
 
     res.json(result.rows);
+  } catch (err) {
+    console.error("DB Error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
+};
+
+exports.getAverageCostByBarcode = async (req, res) => {
+  try {
+    const { barcode, clientId, locationId, date } = req.body;
+
+    const result = await db.query(`SELECT getavaragecostbyid($1, $2, $3, $4)`, [
+      barcode,
+      clientId,
+      locationId,
+      date,
+    ]);
+
+    res.json({
+      average_cost: result.rows[0].getavaragecostbyid,
+    });
   } catch (err) {
     console.error("DB Error:", err);
     res.status(500).json({ message: "Database error" });

@@ -26,9 +26,10 @@ import PrintIcon from "@mui/icons-material/Print";
 import {
   addAdjustment,
   fetchLocationMaster,
+  insertBO_Tran_Adjustment,
   insertBO_Tran_PR,
 } from "../../API/api";
-import SearchDialog from "../../Purchase/PurchaseOrder/SearchDialog";
+import SearchDialog from "../SearchDialog";
 import { useNavigate } from "react-router-dom";
 import EditableNumberCell from "../../Common/EditableNumberCell";
 import EditableNumberCell2 from "../../Common/EditableNumberCell2";
@@ -155,16 +156,17 @@ export default function CreateAdjustment() {
 
   //////need to do here
   const handleProductSelect = (product) => {
+    console.log("Product selected in CreateAdjustment:", product);
     setAdjData({
       Barcode: product.Barcode,
       Product_ID: product.Product_ID,
       Description: product.Description,
       UOM: product.Stock_UM,
-      Unit_Price: product.Unit_Cost,
+      Unit_Price: product.avg_Cost,
       Quantity: product.UM_QTY,
       Total: "",
     });
-    setUnitPrice(product.Unit_Cost);
+    setUnitPrice(Number(product.avg_Cost).toFixed(2));
     setOpenAddModal(false); // Optionally close dialog
   };
 
@@ -281,7 +283,7 @@ export default function CreateAdjustment() {
 
   const handlePosted = async () => {
     try {
-      await insertBO_Tran_PR(grnCode);
+      await insertBO_Tran_Adjustment(grnCode);
       toast.success("PR Posted Successfully");
       setPosted(true);
     } catch (error) {

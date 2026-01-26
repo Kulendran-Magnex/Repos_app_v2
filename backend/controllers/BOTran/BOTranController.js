@@ -595,3 +595,170 @@ exports.createBOTranFromAdjustment = async (req, res) => {
     client.release();
   }
 };
+
+exports.createBOTranFromTransfer = async (req, res) => {
+  const { Transfer_Code } = req.params;
+  const Client_ID = "940T0003";
+  const Batch_No = generateBatchNo();
+  const Posted_By = "01";
+
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const Tran_Date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const Tran_Time = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    /* ----------------------------------------------------
+       1. Fetch Adjustment Header + Detail
+    ---------------------------------------------------- */
+    const Query = `
+      SELECT ah.*, ad.*
+      FROM transfer_header ah
+      JOIN transfer_detail ad
+        ON ah."Transfer_ID" = ad."Transfer_ID"
+      WHERE ah."Transfer_ID" = $1
+        AND ad."Client_ID" = $2
+    `;
+    const { rows: Rows } = await client.query(Query, [
+      Transfer_Code,
+      Client_ID,
+    ]);
+
+    if (Rows.length === 0) {
+      throw new Error("No Transfer data found");
+    }
+
+    const values = [];
+    const placeholders = [];
+    let index = 1;
+
+    /* ----------------------------------------------------
+       2. Process Each Item
+    ---------------------------------------------------- */
+    for (const item of Rows) {
+      let Unit_Cost = Number(item.Unit_Cost || 0);
+      const Tran_QTY = Number(item.Transfer_QTY || 0) * -1;
+      const Location_ID = item.Location_From_ID;
+      const Barcode = item.Barcode;
+
+      /* ---- Fallback Unit Cost ---- */
+      if (Unit_Cost === 0) {
+        const fallbackQuery = `
+          SELECT "Unit_Cost", "Last_Purchase_Price"
+          FROM product_details
+          WHERE "Barcode" = $1 AND "Client_ID" = $2
+          LIMIT 1
+        `;
+        const { rows } = await client.query(fallbackQuery, [
+          Barcode,
+          Client_ID,
+        ]);
+
+        if (rows.length > 0) {
+          Unit_Cost =
+            Number(rows[0].Last_Purchase_Price) ||
+            Number(rows[0].Unit_Cost) ||
+            0;
+        }
+      }
+
+      /* ---- Average Cost ---- */
+      const avgCostResult = await client.query(
+        `SELECT * FROM getAverageCost($1,$2,$3,$4,$5,$6)`,
+        [
+          Barcode,
+          Client_ID,
+          Location_ID,
+          Tran_Date,
+          Tran_QTY,
+          item.Transfer_Cost * -1,
+        ],
+      );
+
+      const Average_Cost = avgCostResult.rows[0]?.getaveragecost || 0;
+
+      console.log("Average_cost", Average_Cost);
+
+      /* ---- Stock in Hand ---- */
+      const stockResult = await client.query(
+        `SELECT * FROM getTotalStock($1,$2,$3,$4,$5)`,
+        [Barcode, Client_ID, Location_ID, Tran_Date, Tran_QTY],
+      );
+
+      const Stock_In_Hand = stockResult.rows[0]?.salesqty || 0;
+
+      const Stock_Value_AC = Average_Cost * Stock_In_Hand;
+
+      console.log("stock_Value_AC", Stock_Value_AC);
+
+      if (Stock_In_Hand < 0) {
+        throw new Error(
+          `Insufficient stock for Product_ID ${item.Product_ID} at Location_ID ${Location_ID}`,
+        );
+      }
+
+      /* ---- Prepare Insert ---- */
+      placeholders.push(`(
+        $${index++}, $${index++}, $${index++}, $${index++}, $${index++},
+        $${index++}, $${index++}, $${index++}, $${index++}, $${index++},
+        $${index++}, $${index++}, $${index++}, $${index++}, $${index++},
+        $${index++}, $${index++}, $${index++}, $${index++}, $${index++}
+      )`);
+
+      values.push(
+        Location_ID,
+        item.Product_ID,
+        item.Description,
+        item.Transfer_UM,
+        Tran_QTY,
+        Unit_Cost,
+        Math.abs(Number(item.Transfer_Cost || 0)),
+        Batch_No,
+        "TR",
+        Tran_Date,
+        Tran_Time,
+        Tran_Date,
+        Posted_By,
+        Transfer_Code,
+        Average_Cost,
+        Tran_QTY,
+        Stock_In_Hand,
+        Stock_Value_AC,
+        Barcode,
+        Client_ID,
+      );
+    }
+
+    /* ----------------------------------------------------
+       3. Insert into bo_tran (COLUMN NAMES UNCHANGED)
+    ---------------------------------------------------- */
+    const insertQuery = `
+      INSERT INTO bo_tran (
+        "Location_ID", "Product_ID", "Description", "Product_UM", "Tran_QTY",
+        "Unit_Cost", "Tran_Cost", "Batch_No", "Tran_Type", "Tran_Date", "Tran_Time",
+        "Posted_Date", "Posted_By", "Document_Code", "Average_Cost",
+        "Stock_UM_QTY", "Stock_In_Hand", "Stock_Value_AC", "Barcode", "Client_ID"
+      )
+      VALUES ${placeholders.join(",")}
+    `;
+
+    const insertResult = await client.query(insertQuery, values);
+
+    await client.query("COMMIT");
+
+    res.json({
+      message: "Adjustment processed successfully",
+      insertedRows: insertResult.rowCount,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Adjustment BO Error:", error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+};

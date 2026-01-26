@@ -26,9 +26,10 @@ import PrintIcon from "@mui/icons-material/Print";
 import {
   addAdjustment,
   fetchLocationMaster,
-  addTransfer
+  addTransfer,
+  insertBO_Tran_Transfer
 } from "../../API/api";
-import SearchDialog from "../../Purchase/PurchaseOrder/SearchDialog";
+import SearchDialog from "../SearchDialog";
 import { useNavigate } from "react-router-dom";
 import EditableNumberCell from "../../Common/EditableNumberCell";
 import EditableNumberCell2 from "../../Common/EditableNumberCell2";
@@ -60,7 +61,7 @@ export default function CreateTransfer() {
   const [editingRowIndex, setEditingRowIndex] = useState(null);
   const today = new Date().toISOString().split("T")[0];
   const { getRef, handleKeyDown } = useFormNavigation(10); // 10 fields
-  const [grnCode, setGrnCode] = useState("New");
+  const [transferCode, setTransferCode] = useState("New");
   const [posted, setPosted] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -160,11 +161,11 @@ export default function CreateTransfer() {
       Product_ID: product.Product_ID,
       Description: product.Description,
       UOM: product.Stock_UM,
-      Unit_Price: product.Unit_Cost,
+      Unit_Price: product.avg_Cost,
       Quantity: product.UM_QTY,
       Total: "",
     });
-    setUnitPrice(product.Unit_Cost);
+   setUnitPrice(Number(product.avg_Cost).toFixed(2));
     setOpenAddModal(false); // Optionally close dialog
   };
 
@@ -276,7 +277,7 @@ export default function CreateTransfer() {
           ...prev,
           Transfer_ID: result.Transfer_Code,
         }))
-        setGrnCode(result.Transfer_Code);
+        setTransferCode(result.Transfer_Code);
       }
       setAdded(true);
       toast.success("Transfer Added");
@@ -288,11 +289,11 @@ export default function CreateTransfer() {
 
   const handlePosted = async () => {
     try {
-      // await insertBO_Tran_PR(grnCode);
-      toast.success("PR Posted Successfully");
+      await insertBO_Tran_Transfer(transferCode);
+      toast.success("Transfer Posted Successfully");
       setPosted(true);
     } catch (error) {
-      toast.error("Failed to Post PR.");
+      toast.error("Failed to Post Transfer.");
       console.error("Post failed:", error.message);
     }
   };
