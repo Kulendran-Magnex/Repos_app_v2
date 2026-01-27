@@ -24,9 +24,8 @@ import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PrintIcon from "@mui/icons-material/Print";
 import {
-  editAdjustment,
   fetchLocationMaster,
-  insertBO_Tran_Adjustment,
+  insertBO_Tran_Transfer,
   editTransfer
 } from "../../API/api";
 import SearchDialog from "../../Purchase/PurchaseOrder/SearchDialog";
@@ -77,11 +76,12 @@ export default function EditTransfer() {
   const [addedGRNCodes, setAddedGRNCodes] = useState([]);
   const { getRef, handleKeyDown } = useFormNavigation(10); // 10 fields
   const [grnCode, setGrnCode] = useState("New");
+  const [transferCode, setTransferCode] = useState("New");
   const [posted, setPosted] = useState(false);
   const [added, setAdded] = useState(false);
   const location = useLocation();
-//   const { currentItemID } = location.state || {};
-    const  currentItemID  = "TRA0000000005";
+  const { currentItemID } = location.state || {};
+
 
 
     const [headerData, setHeaderData] = useState({
@@ -378,19 +378,20 @@ export default function EditTransfer() {
     try {
       const result = await editTransfer(currentItemID, payload);
       if (result.ADJ_Code) {
-        setGrnCode(result.ADJ_Code);
+        setTransferCode(result.ADJ_Code);
       }
       setAdded(true);
-      toast.success("Adjustment Added");
+      toast.success("Transfer Updated");
     } catch (error) {
-      toast.error("Failed to add Adjustment.");
+      toast.error("Failed to update Transfer.");
       console.error("Insert failed:", error.message);
     }
   };
 
   const handlePosted = async () => {
     try {
-      await insertBO_Tran_Adjustment(grnCode);
+     
+       await insertBO_Tran_Transfer(transferCode);
       toast.success("Adjustment Posted Successfully");
       setPosted(true);
     } catch (error) {

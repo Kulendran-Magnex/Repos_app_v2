@@ -613,9 +613,9 @@ exports.createBOTranFromTransfer = async (req, res) => {
     await client.query("BEGIN");
 
     /* ----------------------------------------------------
-       1. Fetch Adjustment Header + Detail
+       1. Fetch Transfer Header + Detail
     ---------------------------------------------------- */
-    const Query = `
+    const fetchQuery = `
       SELECT ah.*, ad.*
       FROM transfer_header ah
       JOIN transfer_detail ad
@@ -623,100 +623,99 @@ exports.createBOTranFromTransfer = async (req, res) => {
       WHERE ah."Transfer_ID" = $1
         AND ad."Client_ID" = $2
     `;
-    const { rows: Rows } = await client.query(Query, [
-      Transfer_Code,
-      Client_ID,
-    ]);
 
-    if (Rows.length === 0) {
+    const { rows } = await client.query(fetchQuery, [Transfer_Code, Client_ID]);
+
+    if (rows.length === 0) {
       throw new Error("No Transfer data found");
     }
 
-    const values = [];
-    const placeholders = [];
-    let index = 1;
-
     /* ----------------------------------------------------
-       2. Process Each Item
+       Common Insert Query
     ---------------------------------------------------- */
-    for (const item of Rows) {
-      let Unit_Cost = Number(item.Unit_Cost || 0);
-      const Tran_QTY = Number(item.Transfer_QTY || 0) * -1;
-      const Location_ID = item.Location_From_ID;
+    const insertQuery = `
+      INSERT INTO bo_tran (
+        "Location_ID", "Product_ID", "Description", "Product_UM", "Tran_QTY",
+        "Unit_Cost", "Tran_Cost", "Batch_No", "Tran_Type",
+        "Tran_Date", "Tran_Time", "Posted_Date", "Posted_By",
+        "Document_Code", "Average_Cost",
+        "Stock_UM_QTY", "Stock_In_Hand", "Stock_Value_AC",
+        "Barcode", "Client_ID"
+      )
+      VALUES
+    `;
+
+    /* ====================================================
+       2. FROM LOCATION (STOCK OUT)
+    ==================================================== */
+    let fromIndex = 1;
+    const fromPlaceholders = [];
+    const fromValues = [];
+
+    for (const item of rows) {
       const Barcode = item.Barcode;
+      const Location_From = item.Location_From_ID;
+      const Tran_QTY = -Math.abs(Number(item.Transfer_QTY || 0));
+      let Unit_Cost = Number(item.Unit_Cost || 0);
+      const Tran_Cost = -Math.abs(Number(item.Transfer_Cost || 0));
 
       /* ---- Fallback Unit Cost ---- */
       if (Unit_Cost === 0) {
-        const fallbackQuery = `
-          SELECT "Unit_Cost", "Last_Purchase_Price"
-          FROM product_details
-          WHERE "Barcode" = $1 AND "Client_ID" = $2
-          LIMIT 1
-        `;
-        const { rows } = await client.query(fallbackQuery, [
-          Barcode,
-          Client_ID,
-        ]);
+        const { rows: costRows } = await client.query(
+          `SELECT "Unit_Cost", "Last_Purchase_Price"
+           FROM product_details
+           WHERE "Barcode" = $1 AND "Client_ID" = $2
+           LIMIT 1`,
+          [Barcode, Client_ID],
+        );
 
-        if (rows.length > 0) {
+        if (costRows.length > 0) {
           Unit_Cost =
-            Number(rows[0].Last_Purchase_Price) ||
-            Number(rows[0].Unit_Cost) ||
+            Number(costRows[0].Last_Purchase_Price) ||
+            Number(costRows[0].Unit_Cost) ||
             0;
         }
       }
 
       /* ---- Average Cost ---- */
-      const avgCostResult = await client.query(
+      const avgCostRes = await client.query(
         `SELECT * FROM getAverageCost($1,$2,$3,$4,$5,$6)`,
-        [
-          Barcode,
-          Client_ID,
-          Location_ID,
-          Tran_Date,
-          Tran_QTY,
-          item.Transfer_Cost * -1,
-        ],
+        [Barcode, Client_ID, Location_From, Tran_Date, Tran_QTY, Tran_Cost],
       );
+      const Average_Cost = avgCostRes.rows[0]?.getaveragecost || 0;
 
-      const Average_Cost = avgCostResult.rows[0]?.getaveragecost || 0;
-
-      console.log("Average_cost", Average_Cost);
-
-      /* ---- Stock in Hand ---- */
-      const stockResult = await client.query(
+      /* ---- Stock Check ---- */
+      const stockRes = await client.query(
         `SELECT * FROM getTotalStock($1,$2,$3,$4,$5)`,
-        [Barcode, Client_ID, Location_ID, Tran_Date, Tran_QTY],
+        [Barcode, Client_ID, Location_From, Tran_Date, Tran_QTY],
       );
-
-      const Stock_In_Hand = stockResult.rows[0]?.salesqty || 0;
-
-      const Stock_Value_AC = Average_Cost * Stock_In_Hand;
-
-      console.log("stock_Value_AC", Stock_Value_AC);
+      const Stock_In_Hand = stockRes.rows[0]?.salesqty || 0;
 
       if (Stock_In_Hand < 0) {
         throw new Error(
-          `Insufficient stock for Product_ID ${item.Product_ID} at Location_ID ${Location_ID}`,
+          `Insufficient stock for Product ${item.Product_ID} at Location ${Location_From}`,
         );
       }
 
-      /* ---- Prepare Insert ---- */
-      placeholders.push(`(
-        $${index++}, $${index++}, $${index++}, $${index++}, $${index++},
-        $${index++}, $${index++}, $${index++}, $${index++}, $${index++},
-        $${index++}, $${index++}, $${index++}, $${index++}, $${index++},
-        $${index++}, $${index++}, $${index++}, $${index++}, $${index++}
+      const Stock_Value_AC = Stock_In_Hand * Average_Cost;
+
+      fromPlaceholders.push(`(
+        $${fromIndex++}, $${fromIndex++}, $${fromIndex++}, $${fromIndex++}, $${fromIndex++},
+        $${fromIndex++}, $${fromIndex++}, $${fromIndex++}, $${fromIndex++},
+        $${fromIndex++}, $${fromIndex++}, $${fromIndex++}, $${fromIndex++},
+        $${fromIndex++}, $${fromIndex++},
+        $${fromIndex++}, $${fromIndex++}, $${fromIndex++},
+        $${fromIndex++}, $${fromIndex++}
       )`);
 
-      values.push(
-        Location_ID,
+      fromValues.push(
+        Location_From,
         item.Product_ID,
         item.Description,
         item.Transfer_UM,
         Tran_QTY,
         Unit_Cost,
-        Math.abs(Number(item.Transfer_Cost || 0)),
+        Math.abs(Tran_Cost),
         Batch_No,
         "TR",
         Tran_Date,
@@ -733,30 +732,112 @@ exports.createBOTranFromTransfer = async (req, res) => {
       );
     }
 
-    /* ----------------------------------------------------
-       3. Insert into bo_tran (COLUMN NAMES UNCHANGED)
-    ---------------------------------------------------- */
-    const insertQuery = `
-      INSERT INTO bo_tran (
-        "Location_ID", "Product_ID", "Description", "Product_UM", "Tran_QTY",
-        "Unit_Cost", "Tran_Cost", "Batch_No", "Tran_Type", "Tran_Date", "Tran_Time",
-        "Posted_Date", "Posted_By", "Document_Code", "Average_Cost",
-        "Stock_UM_QTY", "Stock_In_Hand", "Stock_Value_AC", "Barcode", "Client_ID"
-      )
-      VALUES ${placeholders.join(",")}
-    `;
+    const fromResult = await client.query(
+      insertQuery + fromPlaceholders.join(","),
+      fromValues,
+    );
 
-    const insertResult = await client.query(insertQuery, values);
+    /* ====================================================
+       3. TO LOCATION (STOCK IN)
+    ==================================================== */
+    let toIndex = 1;
+    const toPlaceholders = [];
+    const toValues = [];
+
+    for (const item of rows) {
+      const Barcode = item.Barcode;
+      const Location_To = item.Location_To_ID;
+      const Tran_QTY = Math.abs(Number(item.Transfer_QTY || 0));
+      let Unit_Cost = Number(item.Unit_Cost || 0);
+      const Tran_Cost = Math.abs(Number(item.Transfer_Cost || 0));
+
+      /* ---- Fallback Unit Cost ---- */
+      if (Unit_Cost === 0) {
+        const { rows: costRows } = await client.query(
+          `SELECT "Unit_Cost", "Last_Purchase_Price"
+           FROM product_details
+           WHERE "Barcode" = $1 AND "Client_ID" = $2
+           LIMIT 1`,
+          [Barcode, Client_ID],
+        );
+
+        if (costRows.length > 0) {
+          Unit_Cost =
+            Number(costRows[0].Last_Purchase_Price) ||
+            Number(costRows[0].Unit_Cost) ||
+            0;
+        }
+      }
+
+      /* ---- Average Cost ---- */
+      const avgCostRes = await client.query(
+        `SELECT * FROM getAverageCost($1,$2,$3,$4,$5,$6)`,
+        [Barcode, Client_ID, Location_To, Tran_Date, Tran_QTY, Tran_Cost],
+      );
+      const Average_Cost = avgCostRes.rows[0]?.getaveragecost || 0;
+
+      /* ---- Stock ---- */
+      const stockRes = await client.query(
+        `SELECT * FROM getTotalStock($1,$2,$3,$4,$5)`,
+        [Barcode, Client_ID, Location_To, Tran_Date, Tran_QTY],
+      );
+      const Stock_In_Hand = stockRes.rows[0]?.salesqty || 0;
+      const Stock_Value_AC = Stock_In_Hand * Average_Cost;
+
+      toPlaceholders.push(`(
+        $${toIndex++}, $${toIndex++}, $${toIndex++}, $${toIndex++}, $${toIndex++},
+        $${toIndex++}, $${toIndex++}, $${toIndex++}, $${toIndex++},
+        $${toIndex++}, $${toIndex++}, $${toIndex++}, $${toIndex++},
+        $${toIndex++}, $${toIndex++},
+        $${toIndex++}, $${toIndex++}, $${toIndex++},
+        $${toIndex++}, $${toIndex++}
+      )`);
+
+      toValues.push(
+        Location_To,
+        item.Product_ID,
+        item.Description,
+        item.Transfer_UM,
+        Tran_QTY,
+        Unit_Cost,
+        Tran_Cost,
+        Batch_No,
+        "TR",
+        Tran_Date,
+        Tran_Time,
+        Tran_Date,
+        Posted_By,
+        Transfer_Code,
+        Average_Cost,
+        Tran_QTY,
+        Stock_In_Hand,
+        Stock_Value_AC,
+        Barcode,
+        Client_ID,
+      );
+    }
+
+    const toResult = await client.query(
+      insertQuery + toPlaceholders.join(","),
+      toValues,
+    );
+
+    await client.query(
+      `UPDATE transfer_header
+       SET "Status" = 1
+       WHERE "Transfer_Code" = $1 AND "Client_ID" = $2`,
+      [Transfer_Code, Client_ID],
+    );
 
     await client.query("COMMIT");
 
     res.json({
-      message: "Adjustment processed successfully",
-      insertedRows: insertResult.rowCount,
+      message: "Transfer BO posting completed successfully",
+      insertedRows: fromResult.rowCount + toResult.rowCount,
     });
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Adjustment BO Error:", error);
+    console.error("BO Transfer Error:", error);
     res.status(500).json({ error: error.message });
   } finally {
     client.release();

@@ -15,6 +15,7 @@ import {
   Button,
   TablePagination,
   IconButton,
+  Chip,
 } from "@mui/material";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -23,6 +24,7 @@ import toast from "react-hot-toast";
 
 import GRNReport from "../../Purchase/GRN/GRNReport";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
+import { getStatusDisplay, isDeleted } from "../../../utils/statusHelper";
 
 const groupByAdjustmentCode = (data) => {
   const grouped = {};
@@ -306,12 +308,15 @@ const ViewAdjustment = () => {
               <TableCell>
                 <strong>Created By</strong>
               </TableCell>
+              <TableCell>
+                <strong>Status</strong>
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredPOList.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={8} align="center">
                   No records found
                 </TableCell>
               </TableRow>
@@ -371,6 +376,17 @@ const ViewAdjustment = () => {
                   <TableCell>{group.Location_ID || "-"}</TableCell>
                   <TableCell>{group.items[0].Remarks || "-"}</TableCell>
                   <TableCell>{group.items[0].Created_By || "-"}</TableCell>
+                  <TableCell>
+                    {getStatusDisplay(group.items[0].Status).label === "-" ? (
+                      "-"
+                    ) : (
+                      <Chip
+                        label={getStatusDisplay(group.items[0].Status).label}
+                        size="small"
+                        sx={getStatusDisplay(group.items[0].Status).sx}
+                      />
+                    )}
+                  </TableCell>
                 </TableRow>
               ))
             )}

@@ -34,6 +34,7 @@ import CreditCardIcon from "@mui/icons-material/CreditCard";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 
+
 // Updated master menus with new route structure
 const masterMenus = [
   { to: "/category", icon: <CategoryIcon />, label: "Category" },
@@ -71,6 +72,7 @@ const purchaseMenus = [
 
 const inventoryMenus = [
   { to: "/adjustment/view", icon: <AssignmentIcon />, label: "Adjustment" },
+  { to: "/transfer/view", icon: <AssignmentIcon />, label: "Transfer" },
 ];
 
 const NavBar = () => {

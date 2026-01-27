@@ -36,8 +36,11 @@ import EditPR from "./components/Purchase/PurchaseReturn/EditPR";
 import CreateAdjustment from "./components/Inventory/Adjustment/CreateAdjustment";
 import ViewAdjustment from "./components/Inventory/Adjustment/ViewAdjustment";
 import EditAdjustment from "./components/Inventory/Adjustment/EditAdjustment";
+import ViewTransfer from "./components/Inventory/Transfer/ViewTransfer";
 import CreateTransfer from "./components/Inventory/Transfer/CreateTransfer";
 import EditTransfer from "./components/Inventory/Transfer/EditTransfer";
+import CustomerList from "./components/Inventory/Customer/customerList";
+import CustomerForm from "./components/Inventory/Customer/customerForm";
 import { element } from "prop-types";
 
 const routes = [
@@ -102,8 +105,13 @@ const routes = [
 
   // Inventory Transfer
 
+  { path: "/transfer/view", element: <ViewTransfer />},
   { path: "/transfer/create", element: <CreateTransfer />},
-  {path: "/transfer/edit", element: <EditTransfer/>}
+  {path: "/transfer/edit", element: <EditTransfer/>},
+
+
+  { path: "/customer/list", element: <CustomerList /> },
+  { path: "/customer/form", element: <CustomerForm /> }
 ];
 
 export default routes;

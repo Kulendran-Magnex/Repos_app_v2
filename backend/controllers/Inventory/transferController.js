@@ -1,7 +1,7 @@
 const db = require("../../config/db");
 const client_id = "940T0003";
 
-exports.getTransferHeader = async (req, res) => {
+exports.getTransferHeaders = async (req, res) => {
   try {
     const { rows } = await db.query(
       `

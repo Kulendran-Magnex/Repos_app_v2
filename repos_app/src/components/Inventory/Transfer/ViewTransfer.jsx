@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Paper,
@@ -13,96 +13,96 @@ import {
   CircularProgress,
   TextField,
   Button,
-  Chip,
   TablePagination,
   IconButton,
+  Chip,
 } from "@mui/material";
 import axios from "axios";
 import dayjs from "dayjs";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import GRNReport from "../GRN/GRNReport";
+
+import GRNReport from "../../Purchase/GRN/GRNReport";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import { getStatusDisplay, isDeleted } from "../../../utils/statusHelper";
 
-const groupByPOCode = (data) => {
+const groupByAdjustmentCode = (data) => {
   const grouped = {};
   data.forEach((item) => {
-    if (!grouped[item.PR_Code]) {
-      grouped[item.PR_Code] = {
-        PR_Date: item.Creation_Date,
-        Location_ID: item.Location_ID,
+    if (!grouped[item.Transfer_ID]) {
+      grouped[item.Transfer_ID] = {
+        Transfer_Date: item.Transfer_Date,
+        Location_ID: item.Location_From_ID,
         items: [],
       };
     }
-    grouped[item.PR_Code].items.push(item);
+    grouped[item.Transfer_ID].items.push(item);
   });
   return grouped;
 };
 
-const ViewPR = () => {
+const ViewTransfer = () => {
   const [data, setData] = useState([]);
-  const [selectPRCode, setSelectPRCode] = useState(null);
+  const [selectedTransferCode, setSelectedTransferCode] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchCode, setSearchCode] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  const [searchDate, setSearchDate] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const navigate = useNavigate();
 
+  
+
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/PR_Header")
+      .get("http://localhost:5000/api/transfer/header")
       .then((res) => {
+        console.log("fetched data: ", res.data);
         setData(res.data);
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Error fetching PR data:", err);
+        console.error("Error fetching Adjustment data:", err);
         setLoading(false);
       });
   }, []);
 
   useEffect(() => {
-    if (!selectPRCode) {
+    if (!selectedTransferCode) {
       setSelectedItems([]);
       return;
     }
+
     axios
-      .get(`http://localhost:5000/api/PR_Tran/${selectPRCode}`)
+      .get(
+        `http://localhost:5000/api/transfer/tran/${selectedTransferCode}`
+      )
       .then((res) => {
         setSelectedItems(res.data);
-       
       })
       .catch((err) => {
-        console.error("Error fetching PR line items:", err);
+        console.error("Error fetching Adjustment line items:", err);
         setSelectedItems([]);
       });
-  }, [selectPRCode]);
+  }, [selectedTransferCode]);
 
-  const groupedData = groupByPOCode(data);
+  const groupedData = groupByAdjustmentCode(data);
 
   const filteredPOList = Object.entries(groupedData).filter(([code, group]) => {
     const firstItem = group.items[0];
-    const prDate = firstItem.PR_Date
-      ? dayjs(firstItem.PR_Date).format("YYYY-MM-DD")
-      : "";
-
     const matchesCode =
       searchCode === "" ||
       code.toLowerCase().includes(searchCode.toLowerCase());
-
-    // Date range filter
-    const matchesFrom = !fromDate || (prDate && prDate >= fromDate);
-    const matchesTo = !toDate || (prDate && prDate <= toDate);
-
-    return matchesCode && matchesFrom && matchesTo;
+    const matchesDate =
+      searchDate === "" ||
+      (firstItem.Adjustment_Date &&
+        dayjs(firstItem.Adjustment_Date).format("YYYY-MM-DD") === searchDate);
+    return matchesCode && matchesDate;
   });
 
-  const handleRowClick = (prCode) => {
-    setSelectPRCode((prev) => (prev === prCode ? null : prCode));
+  const handleRowClick = (poCode) => {
+    setSelectedTransferCode((prev) => (prev === poCode ? null : poCode));
   };
 
   const handleChangePage = (event, newPage) => {
@@ -115,10 +115,10 @@ const ViewPR = () => {
   };
 
   const sortedData = [...filteredPOList].sort((a, b) => {
-    const aStatus = a[1].items[0].PR_Status;
-    const bStatus = b[1].items[0].PR_Status;
+    const aStatus = a[1].items[0].Status;
+    const bStatus = b[1].items[0].Status;
 
-    if (aStatus === "O" && bStatus !== "O") return -1; // 'O' first
+    if (aStatus === "O" && bStatus !== "0") return -1; // 'O' first
     if (aStatus !== "O" && bStatus === "O") return 1;
     return 0; // keep relative order
   });
@@ -129,7 +129,7 @@ const ViewPR = () => {
   );
 
   const handleDelete = () => {
-    if (!selectPRCode) return;
+    if (!selectedTransferCode) return;
 
     toast.custom((t) => (
       <div
@@ -143,7 +143,7 @@ const ViewPR = () => {
         }}
       >
         <p style={{ marginBottom: "12px", fontWeight: "bold" }}>
-          Delete PR {selectPRCode}?
+          Delete Transfer {selectedTransferCode}?
         </p>
         <div
           style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}
@@ -167,19 +167,21 @@ const ViewPR = () => {
               setTimeout(() => {
                 axios
                   .delete(
-                    `http://localhost:5000/api/purchaseReturn/${selectPRCode}`
+                    `http://localhost:5000/api/GRN/${selectedTransferCode}`
                   )
                   .then(() => {
                     setData((prevData) =>
-                      prevData.filter((item) => item.PR_Code !== selectPRCode)
+                      prevData.filter(
+                        (item) => item.GRN_Code !== selectedTransferCode
+                      )
                     );
-                    setSelectPRCode(null);
+                    setSelectedTransferCode(null);
                     setSelectedItems([]);
-                    toast.success("PR Deleted");
+                    toast.success("Transfer Deleted");
                   })
                   .catch((err) => {
-                    console.error("Error deleting PR:", err);
-                    toast.error("Failed to delete the selected PR.");
+                    console.error("Error deleting Transfer:", err);
+                    toast.error("Failed to delete the selected Transfer.");
                   });
               }, 200); // Wait a bit before showing result
             }}
@@ -200,16 +202,16 @@ const ViewPR = () => {
   };
 
   const handlePrintWindow = () => {
-    if (!selectPRCode || selectedItems.length === 0) {
-      toast.error("Please select a GRN to print.");
+    if (!selectedTransferCode || selectedItems.length === 0) {
+      toast.error("Please select a Transfer to print.");
       return;
     }
 
-    const seletedGRN = data.find((d) => d.GRN_Code === selectPRCode);
+    const seletedGRN = data.find((d) => d.GRN_Code === selectedTransferCode);
     const printWindow = window.open("", "_blank");
 
     const poDetailsHtml = GRNReport({
-      selectPRCode,
+      selectedTransferCode,
       seletedGRN,
       selectedItems,
     });
@@ -239,10 +241,10 @@ const ViewPR = () => {
         sx={{ backgroundColor: "whitesmoke" }}
       >
         <Box display="flex" alignItems="center" gap={1}>
-          <Typography variant="h5">Purchase Return</Typography>
+          <Typography variant="h5">Transfer</Typography>
           <IconButton
             color="primary"
-            onClick={() => navigate("/purchase-return/add")}
+            onClick={() => navigate("/transfer/create")}
             sx={{ mr: 1 }}
           >
             <AddCircleIcon fontSize="large" />
@@ -258,40 +260,31 @@ const ViewPR = () => {
       >
         <Box sx={{ display: "flex", gap: 2 }}>
           <TextField
-            label="Search PR Code"
+            label="Search Transfer Code"
             value={searchCode}
             onChange={(e) => setSearchCode(e.target.value)}
             variant="outlined"
             size="small"
           />
           <TextField
-            label="From Date"
+            label="Search Date"
             type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            variant="outlined"
-            size="small"
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label="To Date"
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
+            value={searchDate}
+            onChange={(e) => setSearchDate(e.target.value)}
             variant="outlined"
             size="small"
             InputLabelProps={{ shrink: true }}
           />
         </Box>
 
-        {selectPRCode && (
+        {selectedTransferCode && (
           <Button
             variant="contained"
             color="error"
             onClick={handleDelete}
             size="small"
           >
-            Delete PR
+            Delete Transfer
           </Button>
         )}
       </Box>
@@ -303,16 +296,20 @@ const ViewPR = () => {
               <TableCell />
               <TableCell />
               <TableCell>
-                <strong>PR Code</strong>
+                <strong>Transfer Code</strong>
               </TableCell>
               <TableCell>
-                <strong>PR Date</strong>
+                <strong>Transfer Date</strong>
               </TableCell>
-              <TableCell>
-                <strong>Supplier</strong>
-              </TableCell>
+
               <TableCell>
                 <strong>Location ID</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Remarks</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Created By</strong>
               </TableCell>
               <TableCell>
                 <strong>Status</strong>
@@ -322,7 +319,7 @@ const ViewPR = () => {
           <TableBody>
             {filteredPOList.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={8} align="center">
                   No records found
                 </TableCell>
               </TableRow>
@@ -331,13 +328,13 @@ const ViewPR = () => {
                 <TableRow
                   key={poCode}
                   hover
-                  selected={selectPRCode === poCode}
+                  selected={selectedTransferCode === poCode}
                   onClick={() => handleRowClick(poCode)}
                   sx={{ cursor: "pointer" }}
                 >
                   <TableCell>
                     <Radio
-                      checked={selectPRCode === poCode}
+                      checked={selectedTransferCode === poCode}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRowClick(poCode);
@@ -361,8 +358,8 @@ const ViewPR = () => {
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectPRCode(poCode);
-                        navigate("/purchase-return/edit", {
+                        setSelectedTransferCode(poCode);
+                        navigate("/transfer/edit", {
                           state: { currentItemID: poCode },
                         });
                       }}
@@ -374,20 +371,22 @@ const ViewPR = () => {
                   </TableCell>
                   <TableCell>{poCode}</TableCell>
                   <TableCell>
-                    {group.PR_Date
-                      ? dayjs(group.PR_Date).format("YYYY-MM-DD")
+                    {group.Transfer_Date
+                      ? dayjs(group.Transfer_Date).format("YYYY-MM-DD")
                       : "-"}
                   </TableCell>
-                  <TableCell>{group.items[0].Supplier_Name || "-"}</TableCell>
+
                   <TableCell>{group.Location_ID || "-"}</TableCell>
+                  <TableCell>{group.items[0].Remarks || "-"}</TableCell>
+                  <TableCell>{group.items[0].Created_By || "-"}</TableCell>
                   <TableCell>
-                    {getStatusDisplay(group.items[0].PR_Status).label === "-" ? (
+                    {getStatusDisplay(group.items[0].Status).label === "-" ? (
                       "-"
                     ) : (
                       <Chip
-                        label={getStatusDisplay(group.items[0].PR_Status).label}
+                        label={getStatusDisplay(group.items[0].Status).label}
                         size="small"
-                        sx={getStatusDisplay(group.items[0].PR_Status).sx}
+                        sx={getStatusDisplay(group.items[0].Status).sx}
                       />
                     )}
                   </TableCell>
@@ -410,7 +409,7 @@ const ViewPR = () => {
 
       {/* Detail Table */}
       <Typography variant="h6" gutterBottom>
-        PR Items
+        Adjustment Items
       </Typography>
       <TableContainer component={Paper}>
         <Table size="small">
@@ -442,28 +441,28 @@ const ViewPR = () => {
           <TableBody>
             {selectedItems.length > 0 ? (
               selectedItems.map((item) => (
-                <TableRow key={item.PR_Line_No}>
+                <TableRow key={item.Row_ID}>
                   <TableCell align="right">{item.Barcode}</TableCell>
                   <TableCell align="right">{item.Product_ID}</TableCell>
                   <TableCell align="right">{item.Description}</TableCell>
-                  <TableCell align="right">{item.Product_UM}</TableCell>
+                  <TableCell align="right">{item.Transfer_UM}</TableCell>
                   <TableCell align="right">
-                    {parseFloat(item.Unit_Price).toFixed(2)}
+                    {parseFloat(item.Unit_Cost).toFixed(2)}
                   </TableCell>
                   <TableCell align="right">
-                    {parseFloat(item.PR_Qty).toFixed(2)}
+                    {parseFloat(item.Transfer_QTY).toFixed(2)}
                   </TableCell>
                   <TableCell align="right">
-                    {parseFloat(item.Total_Amount).toFixed(2)}
+                    {parseFloat(item.Transfer_Cost).toFixed(2)}
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
                 <TableCell colSpan={7} align="center">
-                  {selectPRCode
+                  {selectedTransferCode
                     ? "No line items found"
-                    : "Select a PR to view details"}
+                    : "Select a Transfer to view details"}
                 </TableCell>
               </TableRow>
             )}
@@ -474,4 +473,4 @@ const ViewPR = () => {
   );
 };
 
-export default ViewPR;
+export default ViewTransfer;

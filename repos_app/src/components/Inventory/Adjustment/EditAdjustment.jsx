@@ -366,9 +366,9 @@ export default function EditAdjustment() {
         setGrnCode(result.ADJ_Code);
       }
       setAdded(true);
-      toast.success("Adjustment Added");
+      toast.success("Adjustment Updated");
     } catch (error) {
-      toast.error("Failed to add Adjustment.");
+      toast.error("Failed to update Adjustment.");
       console.error("Insert failed:", error.message);
     }
   };
