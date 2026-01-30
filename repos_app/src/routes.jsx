@@ -39,8 +39,10 @@ import EditAdjustment from "./components/Inventory/Adjustment/EditAdjustment";
 import ViewTransfer from "./components/Inventory/Transfer/ViewTransfer";
 import CreateTransfer from "./components/Inventory/Transfer/CreateTransfer";
 import EditTransfer from "./components/Inventory/Transfer/EditTransfer";
-import CustomerList from "./components/Inventory/Customer/customerList";
-import CustomerForm from "./components/Inventory/Customer/customerForm";
+import CustomerList from "./components/Sales/Customer/customerList";
+import CustomerForm from "./components/Sales/Customer/customerForm";
+import CustomerPage from "./components/Sales/Customer/CustomerPage";
+import CreateInvoice from "./components/Sales/Invoice/CreateInvoice";
 import { element } from "prop-types";
 
 const routes = [
@@ -111,7 +113,11 @@ const routes = [
 
 
   { path: "/customer/list", element: <CustomerList /> },
-  { path: "/customer/form", element: <CustomerForm /> }
+  { path: "/customer/form", element: <CustomerForm /> },
+  { path: "/customers", element: <CustomerPage/>},
+
+  
+  { path: "/invoice/create", element: <CreateInvoice/>}
 ];
 
 export default routes;

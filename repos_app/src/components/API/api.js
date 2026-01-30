@@ -17,6 +17,7 @@ const BO_Tran_URL = "/api/bo_tran";
 const PurchaseReturn_URL = "http://localhost:5000/api/purchaseReturn";
 const Adjustment_URL = "http://localhost:5000/api/adjustment";
 const Transfer_URL = "/api/transfer";
+const Customer_URL = "http://localhost:5000/api/customers";
 
 export const fetchPackingMaster = async () => {
   try {
@@ -687,5 +688,23 @@ export const editTransfer = async (transfer_Code, payload) => {
     return response.data;
   } catch (error) {
     throw new Error(`Failed to edit data: ${error.message}`);
+  }
+};
+
+export const fetchCustomers = async () => {
+  try {
+    const response = await axios.get(Customer_URL);
+    return response.data;
+  } catch (error) {
+    throw new Error(`Failed to fetch data: ${error.message}`);
+  }
+};
+
+export const createCustomer = async (data) => {
+  try {
+    const response = await axios.post(Customer_URL, data);
+    return response.data;
+  } catch (error) {
+    throw new Error("Failed to add data");
   }
 };

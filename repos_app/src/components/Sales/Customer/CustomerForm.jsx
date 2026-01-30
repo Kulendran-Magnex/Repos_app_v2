@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { TextField, Button, Typography, Box, FormControl, InputLabel, Select, MenuItem, Paper, Grid } from "@mui/material";
-import { createCustomer } from "../../components/API/api";
+import { createCustomer } from "../../API/api";;
 
 export default function CustomerForm() {
 

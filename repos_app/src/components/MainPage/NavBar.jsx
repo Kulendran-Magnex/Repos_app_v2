@@ -75,10 +75,15 @@ const inventoryMenus = [
   { to: "/transfer/view", icon: <AssignmentIcon />, label: "Transfer" },
 ];
 
+const salesMenus = [
+  { to: "/customers", icon: <AssignmentIcon /> , label: "Customer"}
+]
+
 const NavBar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [purchaseList, setPurchaseList] = useState(null);
   const [inventoryList, setInventoryList] = useState(null);
+  const [salesList, setSalesList] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerSubMenu, setDrawerSubMenu] = useState(null); // "master" or "purchase"
   const [userMenu, setUserMenu] = useState(null);
@@ -92,6 +97,8 @@ const NavBar = () => {
   const handlePurchaseClick = (event) => setPurchaseList(event.currentTarget);
   const handleInventoryClick = (event) => setInventoryList(event.currentTarget);
   const handleInventoryClose = () => setInventoryList(null);
+  const handleSalesClick = (event) => setSalesList(event.currentTarget);
+  const handleSalesClose = () => setSalesList(null);
   const handleMenuClose = () => setAnchorEl(null);
   const handlePurchaseClose = () => setPurchaseList(null);
   const handleUserClick = (event) => setUserMenu(event.currentTarget);
@@ -122,6 +129,17 @@ const NavBar = () => {
         location.pathname.startsWith(menu.to.replace("/view", "/add"))
       ) ||
       inventoryMenus.some((menu) =>
+        location.pathname.startsWith(menu.to.replace("/view", "/edit"))
+      ) ||
+      location.pathname.startsWith(menu.to)
+  );
+
+    const isSalesActive = salesMenus.some(
+    (menu) =>
+      salesMenus.some((menu) =>
+        location.pathname.startsWith(menu.to.replace("/view", "/add"))
+      ) ||
+      salesMenus.some((menu) =>
         location.pathname.startsWith(menu.to.replace("/view", "/edit"))
       ) ||
       location.pathname.startsWith(menu.to)
@@ -273,6 +291,113 @@ const NavBar = () => {
       </List>
     </Box>
   );
+
+  const renderSalesMenu = () => (
+    <Box
+      sx={{ width: 260 }}
+      role="presentation"
+      onClick={() => setDrawerOpen(false)}
+    >
+      <List>
+        <ListItem
+          button
+          component={Link}
+          to="/home"
+          selected={location.pathname === "/home"}
+        >
+          <ListItemIcon>
+            <HomeIcon />
+          </ListItemIcon>
+          <ListItemText primary="Dashboard" />
+        </ListItem>
+        <Divider />
+        <ListItem
+          button
+          onClick={() =>
+            setDrawerSubMenu(drawerSubMenu === "master" ? null : "master")
+          }
+        >
+          <ListItemIcon>
+            <MenuBookIcon />
+          </ListItemIcon>
+          <ListItemText primary="Master" />
+          <ArrowDropDownIcon
+            sx={{
+              transform: drawerSubMenu === "master" ? "rotate(180deg)" : "none",
+            }}
+          />
+        </ListItem>
+        {drawerSubMenu === "master" &&
+          masterMenus.map((menu) => (
+            <ListItem
+              key={menu.to}
+              button
+              component={Link}
+              to={menu.to}
+              selected={location.pathname.startsWith(menu.to)}
+              sx={{ pl: 4 }}
+            >
+              <ListItemIcon>{menu.icon}</ListItemIcon>
+              <ListItemText primary={menu.label} />
+            </ListItem>
+          ))}
+        <Divider />
+        <ListItem
+          button
+          onClick={() =>
+            setDrawerSubMenu(drawerSubMenu === "purchase" ? null : "purchase")
+          }
+        >
+          <ListItemIcon>
+            <ShoppingCartIcon />
+          </ListItemIcon>
+          <ListItemText primary="Purchase" />
+          <ArrowDropDownIcon
+            sx={{
+              transform:
+                drawerSubMenu === "purchase" ? "rotate(180deg)" : "none",
+            }}
+          />
+        </ListItem>
+        {drawerSubMenu === "purchase" &&
+          purchaseMenus.map((menu) => (
+            <ListItem
+              key={menu.to}
+              button
+              component={Link}
+              to={menu.to}
+              selected={
+                location.pathname.startsWith(
+                  menu.to.replace("/view", "/add")
+                ) ||
+                location.pathname.startsWith(
+                  menu.to.replace("/view", "/edit")
+                ) ||
+                location.pathname.startsWith(menu.to)
+              }
+              sx={{ pl: 4 }}
+            >
+              <ListItemIcon>{menu.icon}</ListItemIcon>
+              <ListItemText primary={menu.label} />
+            </ListItem>
+          ))}
+        <Divider />
+        <ListItem
+          button
+          component={Link}
+          to="/contact-us"
+          selected={location.pathname === "/contact-us"}
+        >
+          <ListItemIcon>
+            <AssessmentIcon />
+          </ListItemIcon>
+          <ListItemText primary="Reports" />
+        </ListItem>
+      </List>
+    </Box>
+  );
+
+  
 
   return (
     <AppBar
@@ -459,6 +584,36 @@ const NavBar = () => {
               onClose={handleInventoryClose}
             >
               {renderMenuItems(inventoryMenus, handleInventoryClose)}
+            </Menu>
+
+            <Button
+              onClick={handleSalesClick}
+              endIcon={<ArrowDropDownIcon />}
+              startIcon={<MenuBookIcon />}
+              sx={{
+                color: isSalesActive ? "#fff" : "#e3f2fd",
+                fontWeight: "bold",
+                borderBottom: isSalesActive
+                  ? "3px solid #fff"
+                  : "3px solid transparent",
+                borderRadius: 0,
+                mx: 1,
+                transition: "all 0.2s",
+                "&:hover": {
+                  background: "rgba(255,255,255,0.08)",
+                  color: "#fff",
+                  borderBottom: "3px solid #fff",
+                },
+              }}
+            >
+              Sales
+            </Button>
+            <Menu
+              anchorEl={salesList}
+              open={Boolean(salesList)}
+              onClose={handleSalesClose}
+            >
+              {renderMenuItems(salesMenus, handleSalesClose)}
             </Menu>
 
             <Button

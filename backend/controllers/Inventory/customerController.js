@@ -36,7 +36,7 @@ exports.createCustomer = async (req, res) => {
 
   await db.query(
     `INSERT INTO customer_master
-     ( "Customer_Code","Customer_Name", "Address",  "Email", "Address",
+     ( "Customer_Code","Customer_Name", "Phone_No",  "Email", "Address",
       "Credit_Limit",  "Customer_Type",  "Is_Active",  "Client_ID")
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
     [

@@ -13,7 +13,6 @@ import {
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { fetchSupplierMaster, deleteSupplierMaster } from "../../components/API/api";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
