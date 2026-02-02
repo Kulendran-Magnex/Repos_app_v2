@@ -18,6 +18,7 @@ const PurchaseReturn_URL = "http://localhost:5000/api/purchaseReturn";
 const Adjustment_URL = "http://localhost:5000/api/adjustment";
 const Transfer_URL = "/api/transfer";
 const Customer_URL = "http://localhost:5000/api/customers";
+const Invoice_URL = "http://localhost:5000/api/invoice";
 
 export const fetchPackingMaster = async () => {
   try {
@@ -608,7 +609,6 @@ export const editPurchaseReturn = async (PR_Code, payload) => {
 /////////////////////////////////////Adjustment///////////////////////////////////////////////////////////
 
 export const addAdjustment = async (payload) => {
-  console.log("Payload in addAdjustment:", payload);
   // Map original variable names to internal ones
   const product_list = payload.productList;
   const adjHeaderData = payload.adjHeaderData;
@@ -706,5 +706,27 @@ export const createCustomer = async (data) => {
     return response.data;
   } catch (error) {
     throw new Error("Failed to add data");
+  }
+};
+
+export const addInvoice = async (payload) => {
+  console.log("Payload in addInvoice:", payload);
+  // Map original variable names to internal ones
+  const product_list = payload.productList;
+  const header_data = payload.headerData;
+
+  // Build the safe data object to send
+  const dataToSend = {
+    product_list,
+    header_data,
+
+    // Include any other necessary fields from payload, renamed if needed
+  };
+
+  try {
+    const response = await axios.post(Invoice_URL, dataToSend);
+    return response.data;
+  } catch (error) {
+    throw new Error(`Failed to fetch data: ${error.message}`);
   }
 };

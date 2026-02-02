@@ -1,9 +1,47 @@
 const db = require("../../config/db");
 const client_id = "940T0003";
 
+exports.getInvoices = async (req, res) => {
+  const client_id = "940T0003"; // later from token
+  const { location_id, from_date, to_date } = req.query;
+
+  try {
+    const result = await db.query(
+      `
+      SELECT
+        ih."INV_Date"          AS invoice_date,
+        ih."INV_Code"          AS invoice_number,
+        ih."PO_No"             AS po_order,
+        cm."Customer_Name"     AS customer_name,
+        ih."INV_Status"        AS invoice_status,
+        ih."INV_Amount"        AS amount,
+        ih."Location_ID"       AS location_id
+      FROM "invoice_header" ih
+      LEFT JOIN "customer_master" cm
+        ON cm."Customer_Code" = ih."Customer_Code"
+       AND cm."Client_ID" = ih."Client_ID"
+      WHERE ih."Client_ID" = $1
+        AND ($2::text IS NULL OR ih."Location_ID" = $2)
+        AND ($3::date IS NULL OR ih."INV_Date" >= $3)
+        AND ($4::date IS NULL OR ih."INV_Date" <= $4)
+      ORDER BY ih."INV_Date" DESC
+      `,
+      [client_id, location_id || null, from_date || null, to_date || null],
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      message: "Failed to fetch invoices",
+      error: err.message,
+    });
+  }
+};
+
 exports.createInvoice = async (req, res) => {
-  const { headerData, product_list, total_tax, total_sum } = req.body;
-  const client_id = req.user?.client_id;
+  const { header_data, product_list, total_tax, total_sum } = req.body;
+  const client_id = "940T0003";
   const userID = "01";
 
   if (!client_id) {
@@ -23,7 +61,7 @@ exports.createInvoice = async (req, res) => {
     Location_ID,
     INV_Status,
     Client_ID,
-  } = headerData;
+  } = header_data;
 
   const client = await db.connect();
 
@@ -57,7 +95,7 @@ exports.createInvoice = async (req, res) => {
         "INV_Amount","PO_Date","UserID","Location_ID",
         "INV_Status","Client_ID"
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
       )
       `,
       [
@@ -69,19 +107,19 @@ exports.createInvoice = async (req, res) => {
         INV_Additional_Charges,
         INV_Other_Charges,
         INV_Amount,
-        PO_Date,
+        PO_Date ? PO_Date : null,
         UserID,
         Location_ID,
         INV_Status,
-        Client_ID,
+        client_id,
       ],
     );
 
     /* ---------- Prepare UNNEST Arrays ---------- */
     const rows = product_list.map((item) => {
-      const p = item.grnData || {};
+      const p = item.data || {};
       return [
-        GRN_Code,
+        INV_Code,
         new Date(),
         p.Product_ID,
         p.Barcode,
@@ -93,7 +131,7 @@ exports.createInvoice = async (req, res) => {
         item.total,
         userID,
         client_id,
-        Location,
+        Location_ID,
         0,
         item.taxAmount,
         item.TaxGroup,

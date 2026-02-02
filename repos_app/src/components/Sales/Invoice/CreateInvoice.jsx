@@ -18,6 +18,13 @@ import {
   TableBody,
   Paper,
   Tooltip,
+ Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+ 
+
 } from "@mui/material";
 
 import toast, { Toaster } from "react-hot-toast";
@@ -25,7 +32,8 @@ import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PrintIcon from "@mui/icons-material/Print";
 import {
-  addAdjustment,
+  
+  addInvoice,
   fetchLocationMaster,
   insertBO_Tran_Adjustment,
   fetchCustomers,
@@ -38,6 +46,11 @@ import EditableNumberCell2 from "../../Common/EditableNumberCell2";
 import { useFormNavigation } from "../../../utils/useFormNavigation";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import PageHeader from "../../Common/PageHeader";
+import AddIcon from "@mui/icons-material/Add";
+import SettingsIcon from "@mui/icons-material/Settings";
+import axios from "axios";
+import { re } from "mathjs";
+import { createFilterOptions } from "@mui/material/Autocomplete";
 
 const calculatePrice = async (product) => {
   const qty = parseFloat(product.quantity) || 0;
@@ -78,46 +91,48 @@ export default function CreateInvoice() {
   const [added, setAdded] = useState(false);
   const [value, setValue] = useState(null);
   const [customers, setCustomers] = useState([]);
+ const [salespersons, setSalespersons] = useState([]);
+const [salespersonValue, setSalespersonValue] = useState(null);
+const [salespersonInput, setSalespersonInput] = useState("");
+const [loadingSalespersons, setLoadingSalespersons] = useState(false);
+const [openSalespersonDialog, setOpenSalespersonDialog] = useState(false);
+const filter = createFilterOptions();
+const [spName, setSpName] = useState("");
+const [spEmail, setSpEmail] = useState("");
+const [savingSp, setSavingSp] = useState(false);
 
 
 
-  
 
-  const [adjHeaderData, setAdjHeaderData] = useState({
-    Adjustment_Code: "New",
-    Adj_Date: today,
-    Location: "",
-    Posting_Type: "ADJ",
-    Adj_Status: 0,
-    Created_By: "Admin",
-    Remarks: "",
-  });
+
+
 
   const [headerData, setHeaderData] = useState({
     INV_Code : "New", 
     Customer_Code : "",
     INV_Date : today,
     PO_No: "",
-    INV_Tax_Amount: "",
-    INV_Additional_Charges: "",
-    INV_Other_Charges: "",
-    INV_Amount: "",
+    INV_Tax_Amount: 0,
+    INV_Additional_Charges: 0,
+    INV_Other_Charges: 0,
+    INV_Amount: 0,
     PO_Date: "",
     UserID: "",
     Location_ID: "",
-    INV_Status: "",
+    INV_Status: 0,
     Client_ID: "",
+    INV_Type:""
 
   })
 
-  const [adjData, setAdjData] = useState({
+  const [data, setData] = useState({
     Barcode: "",
     Product_ID: "",
     Description: "",
     UOM: "",
-    Unit_Price: "",
-    Quantity: "",
-    Total: "",
+    Unit_Price: 0,
+    Quantity: 0,
+    Total: 0,
   });
 
   useEffect(() => {
@@ -246,10 +261,41 @@ export default function CreateInvoice() {
     }
   }, [unitPrice, quantity, discountRate, taxRate]);
 
+  useEffect(() => {
+  const fetchSalespersons = async () => {
+    try {
+      setLoadingSalespersons(true);
+
+      const res = await axios.get("http://localhost:5000/api/salespersons", {
+        params: { location_id: "001" }
+      });
+      console.log("salespersons:", res);
+      setSalespersons(res.data);
+    } catch (err) {
+      console.error("Failed to load salespersons", err);
+    } finally {
+      setLoadingSalespersons(false);
+    }
+  };
+
+  // if (headerData.Location_ID) {
+  //   fetchSalespersons();
+  // }
+  fetchSalespersons();
+}, [headerData.Location_ID]);
+
+useEffect(() => {
+  if (!openSalespersonDialog) {
+    setSpName("");
+    setSpEmail("");
+  }
+}, [openSalespersonDialog]);
+
+
   //////need to do here
   const handleProductSelect = (product) => {
     console.log("Product selected in CreateAdjustment:", product);
-    setAdjData({
+    setData({
       Barcode: product.Barcode,
       Product_ID: product.Product_ID,
       Description: product.Description,
@@ -265,7 +311,7 @@ export default function CreateInvoice() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
-    setAdjHeaderData((prevData) => ({
+    setHeaderData((prevData) => ({
       ...prevData,
       [name]: value,
     }));
@@ -287,7 +333,7 @@ export default function CreateInvoice() {
   const handleAddToTable = () => {
     // Prevent duplicate item by Barcode
     const isDuplicate = productList.some(
-      (item) => item.adjData?.Barcode === adjData.Barcode
+      (item) => item.data?.Barcode === data.Barcode
     );
 
     if (isDuplicate) {
@@ -296,11 +342,11 @@ export default function CreateInvoice() {
       setQuantity("");
       setTotal("");
 
-      setAdjData(null);
+      setData(null);
       return;
     }
 
-    const { Barcode, Product_ID, Description, UOM } = adjData;
+    const { Barcode, Product_ID, Description, UOM } = data;
 
     if (!Barcode || !Product_ID || !Description || !UOM) {
       toast.error("Please fill in all required fields.");
@@ -308,7 +354,7 @@ export default function CreateInvoice() {
     }
 
     const newItem = {
-      adjData,
+      data,
       unitPrice,
       quantity: Number(quantity).toFixed(2),
       total,
@@ -319,7 +365,7 @@ export default function CreateInvoice() {
     setUnitPrice("");
     setQuantity("");
     setTotal("");
-    setAdjData({
+    setData({
       Barcode: "",
       Product_ID: "",
       Description: "",
@@ -330,17 +376,68 @@ export default function CreateInvoice() {
     });
   };
 
+  // Open dialog
+const openManageSalespersonDialog = () => {
+  setOpenSalespersonDialog(true);
+};
+
+// Close dialog
+const closeManageSalespersonDialog = () => {
+  setOpenSalespersonDialog(false);
+};
+
   const handleRemoveProduct = (barcode) => {
     setProductList((prevList) =>
-      prevList.filter((p) => p.adjData.Barcode !== barcode)
+      prevList.filter((p) => p.data.Barcode !== barcode)
     );
   };
 
+  const handleSaveSalesperson = async () => {
+  if (!spName.trim()) return;
+
+  try {
+    setSavingSp(true);
+
+    const res = await axios.post("http://localhost:5000/api/salespersons", {
+      Salesperson_Name: spName,
+      Email: spEmail,
+      Location_ID: "001",
+    });
+
+    const newSalesperson = {
+      Salesperson_ID: res.data.Salesperson_ID,
+      Salesperson_Name: spName,
+      Email: spEmail,
+    };
+
+    // update dropdown list
+    setSalespersons((prev) => [...prev, newSalesperson]);
+
+    // auto select
+    setSalespersonValue(newSalesperson);
+    setHeaderData((p) => ({
+      ...p,
+      Salesperson_ID: newSalesperson.Salesperson_ID,
+    }));
+
+    // reset + close
+    setSpName("");
+    setSpEmail("");
+    closeManageSalespersonDialog();
+  } catch (err) {
+    alert("Failed to save salesperson");
+    console.error(err);
+  } finally {
+    setSavingSp(false);
+  }
+};
+
+
   const handleSubmit = async () => {
-    const { Adj_Date, Location , Remarks } = adjHeaderData;
+    const { INV_Date, Location , Remarks } = headerData;
 
     // // Validate required fields
-    if (!Adj_Date || !Location || !Remarks ) {
+    if (!INV_Date || !Location || !Remarks ) {
       toast.error("Please fill in all required fields in header section.");
       return;
     }
@@ -352,7 +449,7 @@ export default function CreateInvoice() {
     }
 
     const payload = {
-      adjHeaderData,
+      headerData,
       productList,
       totalSum,
       taxSum,
@@ -361,14 +458,14 @@ export default function CreateInvoice() {
 
 
     try {
-      const result = await addAdjustment(payload);
-      if (result.Adjustment_Code) {
-        setGrnCode(result.Adjustment_Code);
+      const result = await addInvoice(payload);
+      if (result.Invoice_Code) {
+        setGrnCode(result.Invoice_Code);
       }
       setAdded(true);
-      toast.success("Adjustment Added");
+      toast.success("Invoice Added");
     } catch (error) {
-      toast.error("Failed to add PR.");
+      toast.error("Failed to add Invoice.");
       console.error("Insert failed:", error.message);
     }
   };
@@ -383,6 +480,22 @@ export default function CreateInvoice() {
       console.error("Post failed:", error.message);
     }
   };
+
+  const handleAddSalesperson = async (name) => {
+  // call backend API
+  const res = await axios.post("/api/salespersons", {
+    Salesperson_Name: name,
+    Location_ID: "LOC01"
+  });
+
+  const newPerson = {
+    Salesperson_ID: res.data.Salesperson_ID,
+    Salesperson_Name: name
+  };
+
+  setSalespersons((prev) => [...prev, newPerson]);
+  setSalespersonValue(newPerson);
+};
 
   return (
     <div>
@@ -461,19 +574,29 @@ export default function CreateInvoice() {
                 fullWidth
               />
                <Autocomplete
-                    options={customers}
-                    getOptionLabel={(option) =>
-                        ` ${option.Customer_Name}`
-                    }
-                    value={value}
-                    onChange={(event, newValue) => {
-                        setValue(newValue);
-                        console.log(newValue);
-                    }}
-                    renderInput={(params) => (
-                        <TextField {...params} label="Customer"  margin="normal" fullWidth />
-      )}
+  options={customers}
+  getOptionLabel={(option) => option?.Customer_Name || ""}
+  value={value}
+  onChange={(event, newValue) => {
+    setValue(newValue);
+     
+    setHeaderData((prevData) => ({
+      ...prevData,
+      Customer_Code: newValue ? newValue.Customer_ID : ""
+    }));
+
+    console.log("Customer:",newValue);
+  }}
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      label="Customer"
+      margin="normal"
+      fullWidth
     />
+  )}
+/>
+
               <TextField
                 label="Invoice Date"
                 name="INV_Date"
@@ -539,7 +662,7 @@ export default function CreateInvoice() {
                     )}
                     value={
                       locationList?.find(
-                        (item) => item.Location_ID === adjHeaderData.Location
+                        (item) => item.Location_ID === headerData.Location
                       ) || null
                     }
                     isOptionEqualToValue={(option, value) =>
@@ -575,22 +698,99 @@ export default function CreateInvoice() {
                 </FormControl>
               </Box>
 
-              <TextField
-                label="Sales Person"
-                name="Created_By"
-                value={headerData.Created_By}
-                onChange={handleInputChange}
-                inputRef={getRef(7)}
-                onKeyDown={handleKeyDown(7)}
-                margin="normal"
-                type="text"
-                disabled
-              />
+            
+
+<Autocomplete
+  fullWidth
+  value={salespersonValue}
+  inputValue={salespersonInput}
+  onInputChange={(e, newInputValue) =>
+    setSalespersonInput(newInputValue)
+  }
+
+  options={salespersons}
+  filterOptions={(options, params) => {
+    const filtered = filter(options, params);
+
+    // ADD "Add Salesperson"
+    if (
+      params.inputValue !== "" &&
+      !options.some(
+        (o) =>
+          o.Salesperson_Name.toLowerCase() ===
+          params.inputValue.toLowerCase()
+      )
+    ) {
+      filtered.push({
+        isAdd: true,
+        label: params.inputValue,
+      });
+    }
+
+    // ADD "Manage Salespersons" (always last)
+    filtered.push({
+      isManage: true,
+    });
+
+    return filtered;
+  }}
+
+  getOptionLabel={(option) => {
+    if (option.isAdd) return `Add "${option.label}"`;
+    if (option.isManage) return "Manage Salespersons";
+    return option.Salesperson_Name;
+  }}
+
+  onChange={(event, newValue) => {
+    if (newValue?.isAdd) {
+      handleAddSalesperson(newValue.label);
+    } else if (newValue?.isManage) {
+      openManageSalespersonDialog();
+  
+    } else {
+      setSalespersonValue(newValue);
+      setHeaderData((p) => ({
+        ...p,
+        Salesperson_ID: newValue?.Salesperson_ID || null,
+      }));
+    }
+  }}
+
+  renderOption={(props, option) => {
+   
+
+    if (option.isManage) {
+      return (
+        <li {...props} style={{ borderTop: "1px solid #eee" }}>
+          ➕ Add Salespersons
+        </li>
+      );
+    }
+
+    return (
+      <li {...props}>
+        {option.Salesperson_Name}
+      </li>
+    );
+  }}
+
+  renderInput={(params) => (
+    <TextField
+      {...params}
+     margin="normal"
+      label="Salesperson"
+      placeholder="Select or Add Salesperson"
+    />
+  )}
+/>
+
+
+
 
               <TextField
                 label="Remarks"
                 name="Remarks"
-                value={adjHeaderData.Remarks}
+                value={headerData.Remarks}
                 onChange={handleInputChange}
                 inputRef={getRef(7)}
                 onKeyDown={handleKeyDown(7)}
@@ -640,7 +840,7 @@ export default function CreateInvoice() {
                 <TextField
                   label="Barcode"
                   name="Barcode"
-                  value={adjData?.Barcode || ""}
+                  value={data?.Barcode || ""}
                   fullWidth
                   margin="normal"
                   disabled={added}
@@ -658,7 +858,7 @@ export default function CreateInvoice() {
               <TextField
                 label="Product ID"
                 name="Product_ID"
-                value={adjData?.Product_ID || ""}
+                value={data?.Product_ID || ""}
                 fullWidth
                 margin="normal"
                 disabled
@@ -666,7 +866,7 @@ export default function CreateInvoice() {
               <TextField
                 label="Description"
                 name="Description"
-                value={adjData?.Description || ""}
+                value={data?.Description || ""}
                 fullWidth
                 margin="normal"
                 disabled
@@ -674,7 +874,7 @@ export default function CreateInvoice() {
               <TextField
                 label="UOM"
                 name="UOM"
-                value={adjData?.UOM || ""}
+                value={data?.UOM || ""}
                 margin="normal"
                 disabled
               />
@@ -797,18 +997,18 @@ export default function CreateInvoice() {
                           <IconButton
                             color="error"
                             onClick={() =>
-                              handleRemoveProduct(item.adjData?.Barcode)
+                              handleRemoveProduct(item.data?.Barcode)
                             }
                             disabled={added}
                           >
                             <DeleteIcon />
                           </IconButton>
                         </TableCell>
-                        <TableCell>{item.adjData?.Barcode}</TableCell>
-                        <TableCell>{item.adjData?.Product_ID}</TableCell>
-                        <TableCell>{item.adjData?.Description}</TableCell>
+                        <TableCell>{item.data?.Barcode}</TableCell>
+                        <TableCell>{item.data?.Product_ID}</TableCell>
+                        <TableCell>{item.data?.Description}</TableCell>
                         <TableCell>
-                          {item.adjData?.UOM || item.adjData?.Product_UM}
+                          {item.data?.UOM || item.data?.Product_UM}
                         </TableCell>
                         {/* <TableCell>{item.quantity}</TableCell> */}
                         {/* <TableCell>
@@ -860,6 +1060,52 @@ export default function CreateInvoice() {
           //   onConfirmSelection={handleConfirmSelection}
         />
       </Box>
+
+     <Dialog
+  open={openSalespersonDialog}
+  onClose={closeManageSalespersonDialog}
+ 
+  maxWidth="50%"
+>
+  <DialogTitle>Add Salesperson</DialogTitle>
+
+  <DialogContent dividers>
+    <TextField
+      label="Salesperson Name"
+      value={spName}
+      onChange={(e) => setSpName(e.target.value)}
+      fullWidth
+      required
+      margin="normal"
+      autoFocus
+    />
+
+    <TextField
+      label="Email"
+      type="email"
+      value={spEmail}
+      onChange={(e) => setSpEmail(e.target.value)}
+      fullWidth
+      margin="normal"
+    />
+  </DialogContent>
+
+  <DialogActions>
+    <Button onClick={closeManageSalespersonDialog}>
+      Cancel
+    </Button>
+
+    <Button
+      onClick={handleSaveSalesperson}
+      variant="contained"
+      disabled={!spName || savingSp}
+    >
+      {savingSp ? "Saving..." : "Save"}
+    </Button>
+  </DialogActions>
+</Dialog>
+
+
     </div>
   );
 }

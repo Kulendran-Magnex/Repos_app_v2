@@ -43,7 +43,9 @@ import CustomerList from "./components/Sales/Customer/customerList";
 import CustomerForm from "./components/Sales/Customer/customerForm";
 import CustomerPage from "./components/Sales/Customer/CustomerPage";
 import CreateInvoice from "./components/Sales/Invoice/CreateInvoice";
+// import InvoiceList from "./components/Sales/Invoice/ViewInvoice";
 import { element } from "prop-types";
+import { ViewList } from "@mui/icons-material";
 
 const routes = [
   { path: "/", element: <Homepage /> },
@@ -117,7 +119,8 @@ const routes = [
   { path: "/customers", element: <CustomerPage/>},
 
   
-  { path: "/invoice/create", element: <CreateInvoice/>}
+  { path: "/invoice/create", element: <CreateInvoice/>},
+  // { path: "/invoice/view", element: <InvoiceList/>}
 ];
 
 export default routes;
