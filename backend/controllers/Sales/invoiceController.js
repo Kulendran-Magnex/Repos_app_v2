@@ -39,6 +39,363 @@ exports.getInvoices = async (req, res) => {
   }
 };
 
+exports.getInvoiceById = async (req, res) => {
+  const client_id = "940T0003"; // later from token
+  const { id } = req.params;
+
+  try {
+    // Get invoice header
+    const headerResult = await db.query(
+      `
+      SELECT
+        ih."INV_Code"          AS invoice_number,
+        ih."INV_Date"          AS invoice_date,
+        ih."PO_No"             AS po_order,
+        ih."PO_Date"           AS po_date,
+        ih."INV_Status"        AS invoice_status,
+        ih."INV_Amount"        AS total_amount,
+        ih."INV_Tax_Amount"    AS tax_amount,
+        ih."Location_ID"       AS location_id,
+        cm."Customer_Code"     AS customer_code,
+        cm."Customer_Name"     AS customer_name,
+        cm."Address"  AS customer_address
+      FROM "invoice_header" ih
+      LEFT JOIN "customer_master" cm
+        ON cm."Customer_Code" = ih."Customer_Code"
+       AND cm."Client_ID" = ih."Client_ID"
+      WHERE ih."Client_ID" = $1
+        AND ih."INV_Code" = $2
+      `,
+      [client_id, id],
+    );
+
+    if (headerResult.rowCount === 0) {
+      return res.status(404).json({ message: "Invoice not found" });
+    }
+
+    const header = headerResult.rows[0];
+
+    // Get invoice line items
+    const itemsResult = await db.query(
+      `
+      SELECT
+        "Product_ID"       AS product_id,
+        "Description"      AS product_name,
+        "Product_UM"       AS unit,
+        "INV_Qty"          AS quantity,
+        "Unit_Price"       AS rate,
+        "Total_Amount"     AS amount,
+        "Tax_Amount"       AS tax_amount,
+        "Tax_Group_Code"   AS tax_group
+      FROM "invoice_tran"
+      WHERE "INV_Code" = $1
+        AND "Client_ID" = $2
+      `,
+      [id, client_id],
+    );
+
+    const invoice = {
+      ...header,
+      currency: "LKR",
+      company_name: "Your Company Name",
+      company_location: "Location",
+      company_country: "Country",
+      company_email: "email@company.com",
+      payment_terms: "Due on Receipt",
+      notes: "Thank you for your business.",
+      items: itemsResult.rows,
+      payment_made: 0,
+    };
+
+    res.json(invoice);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      message: "Failed to fetch invoice details",
+      error: err.message,
+    });
+  }
+};
+
+exports.getInvoicePDF = async (req, res) => {
+  const client_id = "940T0003";
+  const { id } = req.params;
+
+  try {
+    // Get invoice header
+    const headerResult = await db.query(
+      `
+      SELECT
+        ih."INV_Code"          AS invoice_number,
+        ih."INV_Date"          AS invoice_date,
+        ih."PO_No"             AS po_order,
+        ih."PO_Date"           AS po_date,
+        ih."INV_Status"        AS invoice_status,
+        ih."INV_Amount"        AS total_amount,
+        ih."INV_Tax_Amount"    AS tax_amount,
+        ih."Location_ID"       AS location_id,
+        cm."Customer_Code"     AS customer_code,
+        cm."Customer_Name"     AS customer_name,
+        cm."Address"  AS customer_address
+      FROM "invoice_header" ih
+      LEFT JOIN "customer_master" cm
+        ON cm."Customer_Code" = ih."Customer_Code"
+       AND cm."Client_ID" = ih."Client_ID"
+      WHERE ih."Client_ID" = $1
+        AND ih."INV_Code" = $2
+      `,
+      [client_id, id],
+    );
+
+    if (headerResult.rowCount === 0) {
+      return res.status(404).json({ message: "Invoice not found" });
+    }
+
+    const header = headerResult.rows[0];
+
+    // Get invoice line items
+    const itemsResult = await db.query(
+      `
+      SELECT
+        "Product_ID"       AS product_id,
+        "Description"      AS product_name,
+        "Product_UM"       AS unit,
+        "INV_Qty"          AS quantity,
+        "Unit_Price"       AS rate,
+        "Total_Amount"     AS amount,
+        "Tax_Amount"       AS tax_amount,
+        "Tax_Group_Code"   AS tax_group
+      FROM "invoice_tran"
+      WHERE "INV_Code" = $1
+        AND "Client_ID" = $2
+      `,
+      [id, client_id],
+    );
+
+    const invoice = {
+      ...header,
+      currency: "LKR",
+      company_name: "Vijay Associates",
+      company_location: "Western Province",
+      company_country: "SriLanka",
+      company_email: "vijayas.cmb@gmail.com",
+      payment_terms: "Due on Receipt",
+      notes: "Thanks for your business.",
+      items: itemsResult.rows,
+      payment_made: 0,
+    };
+
+    // Calculate totals
+    const subTotal = invoice.items.reduce(
+      (sum, item) => sum + (Number(item.amount) || 0),
+      0,
+    );
+    const total = subTotal + (Number(invoice.tax_amount) || 0);
+    const balanceDue = total - (Number(invoice.payment_made) || 0);
+
+    const fmt = (n) =>
+      Number(n || 0).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+
+    // Generate PDF
+    const PDFDocument = require("pdfkit");
+    const doc = new PDFDocument({ margin: 40 });
+    const filename = `invoice_${id}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+
+    doc.pipe(res);
+
+    // Header Section - Company Info (Left) and INVOICE (Right)
+    doc.fontSize(12).font("Helvetica-Bold").text(invoice.company_name, 50, 50);
+    doc.fontSize(10).font("Helvetica").text(invoice.company_location, 50, 70);
+    doc.fontSize(10).text(invoice.company_country, 50, 85);
+    doc.fontSize(10).text(invoice.company_email, 50, 100);
+
+    // INVOICE Title and Number (Right aligned)
+    doc
+      .fontSize(28)
+      .font("Helvetica-Bold")
+      .text("INVOICE", 420, 50, { align: "right" });
+    doc
+      .fontSize(12)
+      .font("Helvetica")
+      .text(`# ${invoice.invoice_number}`, 420, 80, { align: "right" });
+
+    // Balance Due Box (Right aligned)
+    doc.fontSize(9).text("Balance Due", 420, 105, { align: "right" });
+    doc
+      .fontSize(14)
+      .font("Helvetica-Bold")
+      .text(`${invoice.currency} ${fmt(balanceDue)}`, 420, 120, {
+        align: "right",
+      });
+
+    doc.moveDown(5);
+
+    // Horizontal line
+    doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+
+    doc.moveDown(1);
+
+    // Bill To Section
+    doc.fontSize(10).font("Helvetica-Bold").text("Bill To");
+    doc.fontSize(10).font("Helvetica").text(invoice.customer_name);
+    if (invoice.customer_address) {
+      doc.fontSize(9).text(invoice.customer_address);
+    }
+
+    doc.moveDown(1);
+
+    // Invoice Details (Right side)
+    const detailsX = 350;
+    doc.fontSize(9).font("Helvetica").text("Invoice Date:", 50, doc.y);
+    doc.text(
+      new Date(invoice.invoice_date).toLocaleDateString("en-GB"),
+      detailsX,
+      doc.y - 12,
+    );
+
+    doc.moveDown(0.8);
+    doc.text("Terms:", 50);
+    doc.text(invoice.payment_terms, detailsX, doc.y - 12);
+
+    doc.moveDown(2);
+
+    // Table Header
+    const tableTop = doc.y;
+    const headerHeight = 20;
+    const col1 = 55; // #
+    const col2 = 110; // Item & Description
+    const col3 = 360; // Qty
+    const col4 = 410; // Rate
+    const col5 = 480; // Amount
+
+    // Header background
+    doc.fillColor("#333333");
+    doc.rect(50, tableTop, 500, headerHeight).fill();
+
+    // Header text
+    doc.fillColor("white");
+    doc.fontSize(10).font("Helvetica-Bold");
+    doc.text("#", col1, tableTop + 5);
+    doc.text("Item & Description", col2, tableTop + 5);
+    doc.text("Qty", col3, tableTop + 5);
+    doc.text("Rate", col4, tableTop + 5);
+    doc.text("Amount", col5, tableTop + 5);
+
+    doc.fillColor("black");
+    doc.fontSize(9).font("Helvetica");
+
+    let rowY = tableTop + headerHeight + 3;
+    const rowHeight = 18;
+
+    // Table Rows
+    invoice.items.forEach((item, index) => {
+      doc.text((index + 1).toString(), col1, rowY);
+
+      // Item description with line break if needed
+      const itemText = item.product_name || "";
+      doc.text(itemText, col2, rowY, { width: 240, ellipsis: true });
+
+      doc.text(`${Number(item.quantity || 0).toFixed(2)}`, col3, rowY, {
+        align: "center",
+      });
+      doc.text(`${fmt(item.rate)}`, col4, rowY, { align: "right" });
+      doc.text(`${fmt(item.amount)}`, col5, rowY, { align: "right" });
+
+      rowY += rowHeight;
+    });
+
+    doc.moveTo(50, rowY).lineTo(550, rowY).stroke();
+
+    rowY += 10;
+
+    // Summary Section (Right aligned)
+    const summaryX = 380;
+    doc.fontSize(9).font("Helvetica");
+
+    doc.text("Sub Total", summaryX, rowY);
+    doc.text(
+      `${subTotal.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      550,
+      rowY,
+      { align: "right" },
+    );
+
+    rowY += 15;
+
+    if (Number(invoice.tax_amount) > 0) {
+      doc.text("Tax", summaryX, rowY);
+      doc.text(
+        `${Number(invoice.tax_amount).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`,
+        550,
+        rowY,
+        { align: "right" },
+      );
+      rowY += 15;
+    }
+
+    // Total line
+    doc.moveTo(summaryX, rowY).lineTo(550, rowY).stroke();
+    rowY += 5;
+
+    doc.fontSize(11).font("Helvetica-Bold");
+    doc.text("Total", summaryX, rowY);
+    doc.text(`${invoice.currency} ${fmt(total)}`, 550, rowY, {
+      align: "right",
+    });
+
+    rowY += 15;
+
+    // Payment Made
+    if (Number(invoice.payment_made) > 0) {
+      doc.fontSize(9).font("Helvetica").fillColor("red");
+      doc.text("Payment Made", summaryX, rowY);
+      doc.text(`(${fmt(invoice.payment_made)})`, 550, rowY, { align: "right" });
+      rowY += 15;
+      doc.fillColor("black");
+    }
+
+    // Balance Due Box
+    doc.fillColor("#e0e0e0");
+    doc.rect(summaryX - 30, rowY - 3, 200, 25).fill();
+    doc.fillColor("black");
+    doc.fontSize(10).font("Helvetica-Bold");
+    doc.text("Balance Due", summaryX, rowY + 5);
+    doc.text(`${invoice.currency} ${fmt(balanceDue)}`, 550, rowY + 5, {
+      align: "right",
+    });
+
+    doc.moveDown(4);
+
+    // Notes Section
+    if (invoice.notes) {
+      doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+      doc.moveDown(1);
+      doc.fontSize(10).font("Helvetica-Bold").text("Notes");
+      doc.fontSize(9).font("Helvetica").text(invoice.notes);
+    }
+
+    doc.end();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      message: "Failed to generate PDF",
+      error: err.message,
+    });
+  }
+};
+
 exports.createInvoice = async (req, res) => {
   const { header_data, product_list, total_tax, total_sum } = req.body;
   const client_id = "940T0003";

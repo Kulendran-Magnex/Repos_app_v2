@@ -18,7 +18,7 @@ const PurchaseReturn_URL = "http://localhost:5000/api/purchaseReturn";
 const Adjustment_URL = "http://localhost:5000/api/adjustment";
 const Transfer_URL = "/api/transfer";
 const Customer_URL = "http://localhost:5000/api/customers";
-const Invoice_URL = "http://localhost:5000/api/invoice";
+const Invoice_URL = "http://localhost:5000/api/invoices";
 
 export const fetchPackingMaster = async () => {
   try {
