@@ -76,7 +76,8 @@ const inventoryMenus = [
 ];
 
 const salesMenus = [
-  { to: "/customers", icon: <AssignmentIcon /> , label: "Customer"}
+  { to: "/customers", icon: <AssignmentIcon /> , label: "Customer"},
+   { to: "/invoice/view", icon: <AssignmentIcon /> , label: "Invoice"}
 ]
 
 const NavBar = () => {

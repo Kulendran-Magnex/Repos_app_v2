@@ -39,6 +39,53 @@ exports.getInvoices = async (req, res) => {
   }
 };
 
+exports.getInvoiceHeaderByID = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `
+      SELECT *
+      FROM invoice_header
+      WHERE "INV_Code" = $1
+        AND "Client_ID" = $2
+      ORDER BY "Creation_Date" DESC
+      `,
+      [req.params.id, client_id],
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Data not found" });
+    }
+
+    return res.json(rows);
+  } catch (err) {
+    console.error("DB Error:", err);
+    return res.status(500).json({ message: "Database error" });
+  }
+};
+
+exports.getInvoiceTranByID = async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `
+      SELECT *
+      FROM invoice_tran
+      WHERE "INV_Code" = $1
+        AND "Client_ID" = $2
+      `,
+      [req.params.id, client_id],
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Data not found" });
+    }
+
+    return res.json(rows);
+  } catch (err) {
+    console.error("DB Error:", err);
+    return res.status(500).json({ message: "Database error" });
+  }
+};
+
 exports.getInvoiceById = async (req, res) => {
   const client_id = "940T0003"; // later from token
   const { id } = req.params;

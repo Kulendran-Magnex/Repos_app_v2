@@ -49,8 +49,8 @@ import PageHeader from "../../Common/PageHeader";
 import AddIcon from "@mui/icons-material/Add";
 import SettingsIcon from "@mui/icons-material/Settings";
 import axios from "axios";
-import { re } from "mathjs";
 import { createFilterOptions } from "@mui/material/Autocomplete";
+import { useLocation } from "react-router-dom";
 
 const calculatePrice = async (product) => {
   const qty = parseFloat(product.quantity) || 0;
@@ -100,7 +100,8 @@ const filter = createFilterOptions();
 const [spName, setSpName] = useState("");
 const [spEmail, setSpEmail] = useState("");
 const [savingSp, setSavingSp] = useState(false);
-
+const location = useLocation();
+  const { invoice_id } = location.state || {};
 
 
 
@@ -120,8 +121,10 @@ const [savingSp, setSavingSp] = useState(false);
     UserID: "",
     Location_ID: "",
     INV_Status: 0,
+    Salesperson_ID: "",
     Client_ID: "",
-    INV_Type:""
+    INV_Type:"",
+    Remarks:""
 
   })
 
@@ -141,6 +144,7 @@ const [savingSp, setSavingSp] = useState(false);
                 const data = await fetchCustomers();
                 if(data){
                     setCustomers(data);
+                    console.log("customers:", data);
                 }
 
         }catch(err){
@@ -150,6 +154,7 @@ const [savingSp, setSavingSp] = useState(false);
     getcustomersData();
   }, [])
 
+  console.log("header date:", headerData);
   useEffect(() => {
     const loadLocationData = async () => {
       try {
@@ -178,47 +183,88 @@ const [savingSp, setSavingSp] = useState(false);
     }
   }, [unitPrice, quantity]);
 
-//     useEffect(() => {
-//       const price = parseFloat(unitPrice);
-//       const qty = parseFloat(quantity);
-//       const rate = parseFloat(discountRate);
-//       const tax = isNaN(parseFloat(taxRate)) ? 0 : parseFloat(taxRate); // default taxRate to 0 if invalid
   
-//       if (!isNaN(price) && !isNaN(qty) && !isNaN(rate)) {
-//         const gross = price * qty;
-//         const discount = (gross * rate) / 100;
-//         const subTotal = gross - discount;
-//         const taxAmount = (subTotal * tax) / 100;
-//         const finalTotal = subTotal + taxAmount;
+
+    useEffect(() => {
+    if (!invoice_id) return;
+
+    axios
+      .get(`http://localhost:5000/api/invoices/header/${invoice_id}`)
+      .then((res) => {
+        const data = res.data[0];
+        console.log("data:",data);
+     
+        // Format dates safely or return empty string if null
+        const formatDate = (value) => {
+          if (!value) return ""; // handles null or undefined
+          const date = new Date(value);
+          return isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
+        };
+
+        setHeaderData ({
+    INV_Code : data.INV_Code, 
+    Customer_Code : data.Customer_Code,
+    INV_Date : formatDate(data.INV_Date),
+    PO_No: data.PO_No,
+    INV_Tax_Amount: data.INV_Tax_Amount,
+    INV_Additional_Charges: data.INV_Additional_Charges,
+    INV_Other_Charges: data.INV_Other_Charges,
+    INV_Amount: data.INV_Amount,
+    PO_Date: data.PO_Date,
+    UserID: data.UserID,
+    Location_ID: data.Location_ID,
+    INV_Status: data.INV_Status,
+    INV_Type:data.INV_Type,
+    Salesperson_ID: data.SalesMan_Code,
+    Remarks: data.Remarks
+
+  })
+       
+
+        if (data.INV_Status === 1) {
+          setPosted(true);
+        } else {
+          setPosted(false); // optional, if you want to reset when not "P"
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching Adjustment Header data:", err);
+      });
+  }, [invoice_id]);
+
+    useEffect(() => {
+    if (!invoice_id) return;
+
+    const fetchInvoiceTran = async () => {
+      try {
+        const res = await axios.get(
+          `http://localhost:5000/api/invoices/tran/${invoice_id}`
+        );
+        const data = res.data;
+        console.log("tran data: ",  data);
+        if (data) {
+          const formattedList = data.map((item) => ({
+            Barcode: item.Barcode,
+            Product_ID: item.Product_ID,
+            Description: item.Description,
+            UOM: item.Product_UM,
+            Total: item.Total_Amount,
+            Quantity: item.INV_Qty,
+            UnitPrice: item.Unit_Price,
+
   
-//         setDiscountAmount(discount.toFixed(2));
-//         setTotal(finalTotal.toFixed(2)); // Includes tax now
-//       } else {
-//         setDiscountAmount("");
-//         setTotal("");
-//       }
-//     }, [unitPrice, quantity, discountRate, taxRate]);
+          }));
+          setProductList(formattedList);
+        }
+      } catch (err) {
+        console.error("Error fetching PR Tran data:", err);
+      }
+    };
 
-//   useEffect(() => {
-//     if (productList.length === 0) {
-//       setTotalSum(0);
-//       setTaxSum(0);
-//       return;
-//     }
+    fetchInvoiceTran();
+  }, [invoice_id]);
 
-//     const { total } = productList.reduce(
-//       (acc, item) => {
-//         const itemTotal = parseFloat(item.total) || 0;
 
-//         acc.total += itemTotal;
-
-//         return acc;
-//       },
-//       { total: 0 }
-//     );
-
-//     setTotalSum(total);
-//   }, [productList]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -291,6 +337,15 @@ useEffect(() => {
   }
 }, [openSalespersonDialog]);
 
+useEffect(() => {
+  // Sync salespersonValue when salespersons list loads or headerData.Salesperson_ID changes
+  if (salespersons && salespersons.length && headerData?.Salesperson_ID) {
+    const sp = salespersons.find(
+      (s) => s.Salesperson_ID === headerData.Salesperson_ID
+    );
+    if (sp) setSalespersonValue(sp);
+  }
+}, [salespersons, headerData.Salesperson_ID]);
 
   //////need to do here
   const handleProductSelect = (product) => {
@@ -333,7 +388,7 @@ useEffect(() => {
   const handleAddToTable = () => {
     // Prevent duplicate item by Barcode
     const isDuplicate = productList.some(
-      (item) => item.data?.Barcode === data.Barcode
+      (item) => item.Barcode === data.Barcode
     );
 
     if (isDuplicate) {
@@ -473,10 +528,10 @@ const closeManageSalespersonDialog = () => {
   const handlePosted = async () => {
     try {
       await insertBO_Tran_Adjustment(grnCode);
-      toast.success("PR Posted Successfully");
+      toast.success("Invoice Posted Successfully");
       setPosted(true);
     } catch (error) {
-      toast.error("Failed to Post PR.");
+      toast.error("Failed to Post Invoice.");
       console.error("Post failed:", error.message);
     }
   };
@@ -573,20 +628,28 @@ const closeManageSalespersonDialog = () => {
                 disabled
                 fullWidth
               />
-               <Autocomplete
+       <Autocomplete
   options={customers}
   getOptionLabel={(option) => option?.Customer_Name || ""}
-  value={value}
+
+  value={
+    customers.find((c) => c.Customer_Code === headerData.Customer_Code) ||
+    null
+  }
+
+  isOptionEqualToValue={(option, value) =>
+    option.Customer_Code === value?.Customer_Code
+  }
+
   onChange={(event, newValue) => {
-    setValue(newValue);
-     
     setHeaderData((prevData) => ({
       ...prevData,
-      Customer_Code: newValue ? newValue.Customer_ID : ""
+      Customer_Code: newValue ? newValue.Customer_Code : ""
     }));
 
-    console.log("Customer:",newValue);
+    console.log("Customer:", newValue);
   }}
+
   renderInput={(params) => (
     <TextField
       {...params}
@@ -596,7 +659,6 @@ const closeManageSalespersonDialog = () => {
     />
   )}
 />
-
               <TextField
                 label="Invoice Date"
                 name="INV_Date"
@@ -702,13 +764,17 @@ const closeManageSalespersonDialog = () => {
 
 <Autocomplete
   fullWidth
-  value={salespersonValue}
+  options={salespersons}
+  value={salespersonValue || null}
+  isOptionEqualToValue={(option, value) =>
+    option.Salesperson_ID === value?.Salesperson_ID
+  }
   inputValue={salespersonInput}
   onInputChange={(e, newInputValue) =>
     setSalespersonInput(newInputValue)
   }
 
-  options={salespersons}
+ 
   filterOptions={(options, params) => {
     const filtered = filter(options, params);
 
@@ -1004,11 +1070,11 @@ const closeManageSalespersonDialog = () => {
                             <DeleteIcon />
                           </IconButton>
                         </TableCell>
-                        <TableCell>{item.data?.Barcode}</TableCell>
-                        <TableCell>{item.data?.Product_ID}</TableCell>
-                        <TableCell>{item.data?.Description}</TableCell>
+                        <TableCell>{item.Barcode}</TableCell>
+                        <TableCell>{item.Product_ID}</TableCell>
+                        <TableCell>{item.Description}</TableCell>
                         <TableCell>
-                          {item.data?.UOM || item.data?.Product_UM}
+                          {item.UOM || item.Product_UM}
                         </TableCell>
                         {/* <TableCell>{item.quantity}</TableCell> */}
                         {/* <TableCell>
@@ -1020,9 +1086,9 @@ const closeManageSalespersonDialog = () => {
                           />
                         </TableCell> */}
                         <EditableNumberCell2
-                          value={item.quantity}
+                          value={item.Quantity}
                           index={index}
-                          field="quantity"
+                          field="Quantity"
                           isEditing={editingRowIndex === index}
                           onEditStart={() => setEditingRowIndex(index)}
                           onEditEnd={() => setEditingRowIndex(null)}
@@ -1031,7 +1097,7 @@ const closeManageSalespersonDialog = () => {
                         />
 
                         <EditableNumberCell
-                          value={item.unitPrice}
+                          value={item.UnitPrice}
                           index={index}
                           field="unitPrice"
                           isEditing={editingRowIndex === index}
@@ -1042,7 +1108,7 @@ const closeManageSalespersonDialog = () => {
                           allowLeadingZero={false}
                         />
 
-                        <TableCell>{Number(item.total).toFixed(2)}</TableCell>
+                        <TableCell>{Number(item.Total).toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

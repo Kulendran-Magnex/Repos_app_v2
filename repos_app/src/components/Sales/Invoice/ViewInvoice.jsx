@@ -165,7 +165,7 @@ const InvoiceList = () => {
     {
       field: "invoice_status",
       headerName: "Status",
-      width: 150,
+      width: 180,
       renderCell: (params) =>
         params.value === 1 ? (
           <Chip label="Posted" color="success" size="small" />
@@ -286,7 +286,7 @@ const InvoiceList = () => {
           DATA GRID
       ======================== */}
       <Box display="flex" justifyContent="center">
-        <Box sx={{ width: "100%", maxWidth: 1600, marginTop:2, marginLeft:1 }}>
+        <Box sx={{ width: "100%", maxWidth: 1500, marginTop:2, marginLeft:1 }}>
           <DataGrid
             rows={rows}
             columns={columns}
@@ -295,10 +295,19 @@ const InvoiceList = () => {
             pageSize={10}
             rowsPerPageOptions={[10, 25, 50]}
             disableRowSelectionOnClick
-            sx={{
-              backgroundColor: "#fff",
-              borderRadius: 2,
-            }}
+         sx={{
+    "& .MuiDataGrid-columnHeadersInner": {
+      backgroundColor: "#1976d2",
+    },
+    "& .MuiDataGrid-columnHeader": {
+      backgroundColor: "#1976d2",
+      color: "#fff",
+      fontWeight: "bold",
+    },
+    "& .MuiDataGrid-columnHeaderTitle": {
+      fontWeight: "bold",
+    },
+  }}
           />
         </Box>
       </Box>

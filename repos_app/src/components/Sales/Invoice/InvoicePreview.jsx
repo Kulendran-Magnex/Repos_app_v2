@@ -114,7 +114,17 @@ const InvoicePreview = () => {
       >
         Back to Invoices
       </Button>
-          <Button variant="outlined" color="primary" onClick={()=> navigate(`/invoice/edit`)}>Edit</Button>
+          <Button
+  variant="outlined"
+  color="primary"
+  onClick={() =>
+    navigate("/invoice/edit", {
+      state: { invoice_id: invoiceNumber },
+    })
+  }
+>
+  Edit Invoice
+</Button>
           <Button variant="outlined" onClick={handleDownloadPDF}>Download PDF</Button>
           <Button variant="outlined">Print</Button>
           <Button variant="outlined">Send Email</Button>
