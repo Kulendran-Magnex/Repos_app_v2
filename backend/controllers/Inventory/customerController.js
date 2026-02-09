@@ -23,6 +23,7 @@ exports.getCustomers = async (req, res) => {
 };
 
 exports.createCustomer = async (req, res) => {
+  const client_id = "940T0003";
   const {
     customer_code,
     customer_name,
@@ -34,13 +35,31 @@ exports.createCustomer = async (req, res) => {
     is_active,
   } = req.body;
 
+  const { rows } = await db.query(
+    `
+      SELECT "Customer_Code"
+      FROM customer_master
+      WHERE "Client_ID" = $1
+      ORDER BY "Customer_Code" DESC
+      LIMIT 1
+      `,
+    [client_id],
+  );
+
+  let nextId = "Cus000001";
+
+  if (rows.length > 0) {
+    const lastNumber = parseInt(rows[0].Customer_Code.substring(3), 10);
+    nextId = `Cus${String(lastNumber + 1).padStart(6, "0")}`;
+  }
+
   await db.query(
     `INSERT INTO customer_master
      ( "Customer_Code","Customer_Name", "Phone_No",  "Email", "Address",
       "Credit_Limit",  "Customer_Type",  "Is_Active",  "Client_ID")
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
     [
-      customer_code,
+      nextId,
       customer_name,
       phone_no,
       email,

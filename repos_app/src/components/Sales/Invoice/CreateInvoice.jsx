@@ -18,13 +18,11 @@ import {
   TableBody,
   Paper,
   Tooltip,
- Divider,
+  Divider,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
- 
-
 } from "@mui/material";
 
 import toast, { Toaster } from "react-hot-toast";
@@ -32,12 +30,12 @@ import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PrintIcon from "@mui/icons-material/Print";
 import {
-  
   addInvoice,
   fetchLocationMaster,
   insertBO_Tran_Adjustment,
   fetchCustomers,
   insertBO_Tran_PR,
+  createCustomer,
 } from "../../API/api";
 import SearchDialog from "../../Inventory/SearchDialog";
 import { useNavigate } from "react-router-dom";
@@ -69,16 +67,15 @@ const calculatePrice = async (product) => {
 //   { Customer_Code: "C002", Customer_Name: "XYZ Stores" },
 // ];
 
-
 export default function CreateInvoice() {
   const [locationList, setLocationList] = useState([]);
   const [openAddModal, setOpenAddModal] = useState(false);
   const [unitPrice, setUnitPrice] = useState("");
   const [quantity, setQuantity] = useState("");
   const [discountRate, setDiscountRate] = useState(0);
-    const [discountAmount, setDiscountAmount] = useState("");
+  const [discountAmount, setDiscountAmount] = useState("");
   const [taxRate, setTaxRate] = useState(0);
-  const [taxAmount, setTaxAmount]= useState("");
+  const [taxAmount, setTaxAmount] = useState("");
   const [total, setTotal] = useState("");
   const [productList, setProductList] = useState([]);
   const [totalSum, setTotalSum] = useState(0);
@@ -91,26 +88,26 @@ export default function CreateInvoice() {
   const [added, setAdded] = useState(false);
   const [value, setValue] = useState(null);
   const [customers, setCustomers] = useState([]);
- const [salespersons, setSalespersons] = useState([]);
-const [salespersonValue, setSalespersonValue] = useState(null);
-const [salespersonInput, setSalespersonInput] = useState("");
-const [loadingSalespersons, setLoadingSalespersons] = useState(false);
-const [openSalespersonDialog, setOpenSalespersonDialog] = useState(false);
-const filter = createFilterOptions();
-const [spName, setSpName] = useState("");
-const [spEmail, setSpEmail] = useState("");
-const [savingSp, setSavingSp] = useState(false);
-
-
-
-
-
-
+  const [salespersons, setSalespersons] = useState([]);
+  const [salespersonValue, setSalespersonValue] = useState(null);
+  const [salespersonInput, setSalespersonInput] = useState("");
+  const [loadingSalespersons, setLoadingSalespersons] = useState(false);
+  const [openSalespersonDialog, setOpenSalespersonDialog] = useState(false);
+  const filter = createFilterOptions();
+  const [spName, setSpName] = useState("");
+  const [spEmail, setSpEmail] = useState("");
+  const [savingSp, setSavingSp] = useState(false);
+  const [openCustomerDialog, setOpenCustomerDialog] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerType, setCustomerType] = useState("CR");
+  const [savingCustomer, setSavingCustomer] = useState(false);
 
   const [headerData, setHeaderData] = useState({
-    INV_Code : "New", 
-    Customer_Code : "",
-    INV_Date : today,
+    INV_Code: "New",
+    Customer_Code: "",
+    INV_Date: today,
     PO_No: "",
     INV_Tax_Amount: 0,
     INV_Additional_Charges: 0,
@@ -121,9 +118,8 @@ const [savingSp, setSavingSp] = useState(false);
     Location_ID: "",
     INV_Status: 0,
     Client_ID: "",
-    INV_Type:""
-
-  })
+    INV_Type: "",
+  });
 
   const [data, setData] = useState({
     Barcode: "",
@@ -137,18 +133,17 @@ const [savingSp, setSavingSp] = useState(false);
 
   useEffect(() => {
     const getcustomersData = async () => {
-        try{
-                const data = await fetchCustomers();
-                if(data){
-                    setCustomers(data);
-                }
-
-        }catch(err){
-            console.error("Error fetching customers:", err);
+      try {
+        const data = await fetchCustomers();
+        if (data) {
+          setCustomers(data);
         }
-    } 
+      } catch (err) {
+        console.error("Error fetching customers:", err);
+      }
+    };
     getcustomersData();
-  }, [])
+  }, []);
 
   useEffect(() => {
     const loadLocationData = async () => {
@@ -178,47 +173,47 @@ const [savingSp, setSavingSp] = useState(false);
     }
   }, [unitPrice, quantity]);
 
-//     useEffect(() => {
-//       const price = parseFloat(unitPrice);
-//       const qty = parseFloat(quantity);
-//       const rate = parseFloat(discountRate);
-//       const tax = isNaN(parseFloat(taxRate)) ? 0 : parseFloat(taxRate); // default taxRate to 0 if invalid
-  
-//       if (!isNaN(price) && !isNaN(qty) && !isNaN(rate)) {
-//         const gross = price * qty;
-//         const discount = (gross * rate) / 100;
-//         const subTotal = gross - discount;
-//         const taxAmount = (subTotal * tax) / 100;
-//         const finalTotal = subTotal + taxAmount;
-  
-//         setDiscountAmount(discount.toFixed(2));
-//         setTotal(finalTotal.toFixed(2)); // Includes tax now
-//       } else {
-//         setDiscountAmount("");
-//         setTotal("");
-//       }
-//     }, [unitPrice, quantity, discountRate, taxRate]);
+  //     useEffect(() => {
+  //       const price = parseFloat(unitPrice);
+  //       const qty = parseFloat(quantity);
+  //       const rate = parseFloat(discountRate);
+  //       const tax = isNaN(parseFloat(taxRate)) ? 0 : parseFloat(taxRate); // default taxRate to 0 if invalid
 
-//   useEffect(() => {
-//     if (productList.length === 0) {
-//       setTotalSum(0);
-//       setTaxSum(0);
-//       return;
-//     }
+  //       if (!isNaN(price) && !isNaN(qty) && !isNaN(rate)) {
+  //         const gross = price * qty;
+  //         const discount = (gross * rate) / 100;
+  //         const subTotal = gross - discount;
+  //         const taxAmount = (subTotal * tax) / 100;
+  //         const finalTotal = subTotal + taxAmount;
 
-//     const { total } = productList.reduce(
-//       (acc, item) => {
-//         const itemTotal = parseFloat(item.total) || 0;
+  //         setDiscountAmount(discount.toFixed(2));
+  //         setTotal(finalTotal.toFixed(2)); // Includes tax now
+  //       } else {
+  //         setDiscountAmount("");
+  //         setTotal("");
+  //       }
+  //     }, [unitPrice, quantity, discountRate, taxRate]);
 
-//         acc.total += itemTotal;
+  useEffect(() => {
+    if (productList.length === 0) {
+      setTotalSum(0);
+      setTaxSum(0);
+      return;
+    }
 
-//         return acc;
-//       },
-//       { total: 0 }
-//     );
+    const { total } = productList.reduce(
+      (acc, item) => {
+        const itemTotal = parseFloat(item.total) || 0;
 
-//     setTotalSum(total);
-//   }, [productList]);
+        acc.total += itemTotal;
+
+        return acc;
+      },
+      { total: 0 },
+    );
+
+    setTotalSum(total);
+  }, [productList]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -262,35 +257,43 @@ const [savingSp, setSavingSp] = useState(false);
   }, [unitPrice, quantity, discountRate, taxRate]);
 
   useEffect(() => {
-  const fetchSalespersons = async () => {
-    try {
-      setLoadingSalespersons(true);
+    const fetchSalespersons = async () => {
+      try {
+        setLoadingSalespersons(true);
 
-      const res = await axios.get("http://localhost:5000/api/salespersons", {
-        params: { location_id: "001" }
-      });
-      console.log("salespersons:", res);
-      setSalespersons(res.data);
-    } catch (err) {
-      console.error("Failed to load salespersons", err);
-    } finally {
-      setLoadingSalespersons(false);
+        const res = await axios.get("http://localhost:5000/api/salespersons", {
+          params: { location_id: "001" },
+        });
+        console.log("salespersons:", res);
+        setSalespersons(res.data);
+      } catch (err) {
+        console.error("Failed to load salespersons", err);
+      } finally {
+        setLoadingSalespersons(false);
+      }
+    };
+
+    // if (headerData.Location_ID) {
+    //   fetchSalespersons();
+    // }
+    fetchSalespersons();
+  }, [headerData.Location_ID]);
+
+  useEffect(() => {
+    if (!openSalespersonDialog) {
+      setSpName("");
+      setSpEmail("");
     }
-  };
+  }, [openSalespersonDialog]);
 
-  // if (headerData.Location_ID) {
-  //   fetchSalespersons();
-  // }
-  fetchSalespersons();
-}, [headerData.Location_ID]);
-
-useEffect(() => {
-  if (!openSalespersonDialog) {
-    setSpName("");
-    setSpEmail("");
-  }
-}, [openSalespersonDialog]);
-
+  useEffect(() => {
+    if (!openCustomerDialog) {
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerEmail("");
+      setCustomerType("CR");
+    }
+  }, [openCustomerDialog]);
 
   //////need to do here
   const handleProductSelect = (product) => {
@@ -328,12 +331,10 @@ useEffect(() => {
     setProductList(updatedProducts);
   };
 
-
-
   const handleAddToTable = () => {
     // Prevent duplicate item by Barcode
     const isDuplicate = productList.some(
-      (item) => item.data?.Barcode === data.Barcode
+      (item) => item.data?.Barcode === data.Barcode,
     );
 
     if (isDuplicate) {
@@ -377,67 +378,66 @@ useEffect(() => {
   };
 
   // Open dialog
-const openManageSalespersonDialog = () => {
-  setOpenSalespersonDialog(true);
-};
+  const openManageSalespersonDialog = () => {
+    setOpenSalespersonDialog(true);
+  };
 
-// Close dialog
-const closeManageSalespersonDialog = () => {
-  setOpenSalespersonDialog(false);
-};
+  // Close dialog
+  const closeManageSalespersonDialog = () => {
+    setOpenSalespersonDialog(false);
+  };
 
   const handleRemoveProduct = (barcode) => {
     setProductList((prevList) =>
-      prevList.filter((p) => p.data.Barcode !== barcode)
+      prevList.filter((p) => p.data.Barcode !== barcode),
     );
   };
 
   const handleSaveSalesperson = async () => {
-  if (!spName.trim()) return;
+    if (!spName.trim()) return;
 
-  try {
-    setSavingSp(true);
+    try {
+      setSavingSp(true);
 
-    const res = await axios.post("http://localhost:5000/api/salespersons", {
-      Salesperson_Name: spName,
-      Email: spEmail,
-      Location_ID: "001",
-    });
+      const res = await axios.post("http://localhost:5000/api/salespersons", {
+        Salesperson_Name: spName,
+        Email: spEmail,
+        Location_ID: "001",
+      });
 
-    const newSalesperson = {
-      Salesperson_ID: res.data.Salesperson_ID,
-      Salesperson_Name: spName,
-      Email: spEmail,
-    };
+      const newSalesperson = {
+        Salesperson_ID: res.data.Salesperson_ID,
+        Salesperson_Name: spName,
+        Email: spEmail,
+      };
 
-    // update dropdown list
-    setSalespersons((prev) => [...prev, newSalesperson]);
+      // update dropdown list
+      setSalespersons((prev) => [...prev, newSalesperson]);
 
-    // auto select
-    setSalespersonValue(newSalesperson);
-    setHeaderData((p) => ({
-      ...p,
-      Salesperson_ID: newSalesperson.Salesperson_ID,
-    }));
+      // auto select
+      setSalespersonValue(newSalesperson);
+      setHeaderData((p) => ({
+        ...p,
+        Salesperson_ID: newSalesperson.Salesperson_ID,
+      }));
 
-    // reset + close
-    setSpName("");
-    setSpEmail("");
-    closeManageSalespersonDialog();
-  } catch (err) {
-    alert("Failed to save salesperson");
-    console.error(err);
-  } finally {
-    setSavingSp(false);
-  }
-};
-
+      // reset + close
+      setSpName("");
+      setSpEmail("");
+      closeManageSalespersonDialog();
+    } catch (err) {
+      alert("Failed to save salesperson");
+      console.error(err);
+    } finally {
+      setSavingSp(false);
+    }
+  };
 
   const handleSubmit = async () => {
-    const { INV_Date, Location , Remarks } = headerData;
+    const { INV_Date, Location_ID, Remarks } = headerData;
 
     // // Validate required fields
-    if (!INV_Date || !Location || !Remarks ) {
+    if (!INV_Date || !Location_ID || !Remarks) {
       toast.error("Please fill in all required fields in header section.");
       return;
     }
@@ -454,8 +454,6 @@ const closeManageSalespersonDialog = () => {
       totalSum,
       taxSum,
     };
-
-
 
     try {
       const result = await addInvoice(payload);
@@ -482,20 +480,71 @@ const closeManageSalespersonDialog = () => {
   };
 
   const handleAddSalesperson = async (name) => {
-  // call backend API
-  const res = await axios.post("/api/salespersons", {
-    Salesperson_Name: name,
-    Location_ID: "LOC01"
-  });
+    // call backend API
+    const res = await axios.post("/api/salespersons", {
+      Salesperson_Name: name,
+      Location_ID: "LOC01",
+    });
 
-  const newPerson = {
-    Salesperson_ID: res.data.Salesperson_ID,
-    Salesperson_Name: name
+    const newPerson = {
+      Salesperson_ID: res.data.Salesperson_ID,
+      Salesperson_Name: name,
+    };
+
+    setSalespersons((prev) => [...prev, newPerson]);
+    setSalespersonValue(newPerson);
   };
 
-  setSalespersons((prev) => [...prev, newPerson]);
-  setSalespersonValue(newPerson);
-};
+  const handleSaveCustomer = async () => {
+    if (!customerName.trim()) {
+      toast.error("Customer name is required");
+      return;
+    }
+
+    try {
+      setSavingCustomer(true);
+
+      const customerData = {
+        customer_name: customerName,
+        phone_no: customerPhone,
+        email: customerEmail,
+        customer_type: customerType,
+      };
+
+      const res = await createCustomer(customerData);
+
+      const newCustomer = {
+        Customer_Code: res.Customer_Code || res.customer_code,
+        Customer_Name: customerName,
+        Phone_No: customerPhone,
+        Email: customerEmail,
+        Customer_Type: customerType,
+      };
+
+      // Update dropdown list
+      setCustomers((prev) => [...prev, newCustomer]);
+
+      // Auto select
+      setValue(newCustomer);
+      setHeaderData((p) => ({
+        ...p,
+        Customer_Code: newCustomer.Customer_Code,
+      }));
+
+      // Reset and close
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerEmail("");
+      setCustomerType("CR");
+      setOpenCustomerDialog(false);
+      toast.success("Customer created successfully");
+    } catch (err) {
+      toast.error("Failed to create customer");
+      console.error(err);
+    } finally {
+      setSavingCustomer(false);
+    }
+  };
 
   return (
     <div>
@@ -573,29 +622,82 @@ const closeManageSalespersonDialog = () => {
                 disabled
                 fullWidth
               />
-               <Autocomplete
-  options={customers}
-  getOptionLabel={(option) => option?.Customer_Name || ""}
-  value={value}
-  onChange={(event, newValue) => {
-    setValue(newValue);
-     
-    setHeaderData((prevData) => ({
-      ...prevData,
-      Customer_Code: newValue ? newValue.Customer_ID : ""
-    }));
+              <Autocomplete
+                options={customers}
+                getOptionLabel={(option) => {
+                  if (option.isAdd) return `Add "${option.label}"`;
+                  if (option.isManage) return "Manage Customers";
+                  return option?.Customer_Name || "";
+                }}
+                value={value}
+                filterOptions={(options, params) => {
+                  const filtered = options.filter((o) =>
+                    o.Customer_Name?.toLowerCase().includes(
+                      params.inputValue.toLowerCase(),
+                    ),
+                  );
 
-    console.log("Customer:",newValue);
-  }}
-  renderInput={(params) => (
-    <TextField
-      {...params}
-      label="Customer"
-      margin="normal"
-      fullWidth
-    />
-  )}
-/>
+                  // ADD "Add Customer" option
+                  if (
+                    params.inputValue !== "" &&
+                    !options.some(
+                      (o) =>
+                        o.Customer_Name?.toLowerCase() ===
+                        params.inputValue.toLowerCase(),
+                    )
+                  ) {
+                    filtered.push({
+                      isAdd: true,
+                      label: params.inputValue,
+                    });
+                  }
+
+                  // ADD "Manage Customers" (always last)
+                  filtered.push({
+                    isManage: true,
+                  });
+
+                  return filtered;
+                }}
+                onChange={(event, newValue) => {
+                  if (newValue?.isAdd) {
+                    setCustomerName(newValue.label);
+                    setOpenCustomerDialog(true);
+                  } else if (newValue?.isManage) {
+                    setOpenCustomerDialog(true);
+                  } else {
+                    setValue(newValue);
+                    setHeaderData((prevData) => ({
+                      ...prevData,
+                      Customer_Code: newValue ? newValue.Customer_Code : "",
+                    }));
+                    console.log("Customer:", newValue);
+                  }
+                }}
+                renderOption={(props, option) => {
+                  if (option.isManage) {
+                    return (
+                      <li {...props} style={{ borderTop: "1px solid #eee" }}>
+                        ➕ Add Customer
+                      </li>
+                    );
+                  }
+
+                  if (option.isAdd) {
+                    return <li {...props}>Add "{option.label}"</li>;
+                  }
+
+                  return <li {...props}>{option.Customer_Name}</li>;
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Customer"
+                    margin="normal"
+                    fullWidth
+                  />
+                )}
+              />
 
               <TextField
                 label="Invoice Date"
@@ -647,7 +749,7 @@ const closeManageSalespersonDialog = () => {
                     onChange={(event, newValue) => {
                       handleInputChange({
                         target: {
-                          name: "Location",
+                          name: "Location_ID",
                           value: newValue?.Location_ID || "",
                         },
                       });
@@ -662,7 +764,7 @@ const closeManageSalespersonDialog = () => {
                     )}
                     value={
                       locationList?.find(
-                        (item) => item.Location_ID === headerData.Location
+                        (item) => item.Location_ID === headerData.Location_ID,
                       ) || null
                     }
                     isOptionEqualToValue={(option, value) =>
@@ -693,99 +795,81 @@ const closeManageSalespersonDialog = () => {
                   >
                     <MenuItem value={"CR"}>Credit</MenuItem>
                     <MenuItem value={"CS"}>Cash</MenuItem>
-                  
                   </Select>
                 </FormControl>
               </Box>
 
-            
+              <Autocomplete
+                fullWidth
+                value={salespersonValue}
+                inputValue={salespersonInput}
+                onInputChange={(e, newInputValue) =>
+                  setSalespersonInput(newInputValue)
+                }
+                options={salespersons}
+                filterOptions={(options, params) => {
+                  const filtered = filter(options, params);
 
-<Autocomplete
-  fullWidth
-  value={salespersonValue}
-  inputValue={salespersonInput}
-  onInputChange={(e, newInputValue) =>
-    setSalespersonInput(newInputValue)
-  }
+                  // ADD "Add Salesperson"
+                  if (
+                    params.inputValue !== "" &&
+                    !options.some(
+                      (o) =>
+                        o.Salesperson_Name.toLowerCase() ===
+                        params.inputValue.toLowerCase(),
+                    )
+                  ) {
+                    filtered.push({
+                      isAdd: true,
+                      label: params.inputValue,
+                    });
+                  }
 
-  options={salespersons}
-  filterOptions={(options, params) => {
-    const filtered = filter(options, params);
+                  // ADD "Manage Salespersons" (always last)
+                  filtered.push({
+                    isManage: true,
+                  });
 
-    // ADD "Add Salesperson"
-    if (
-      params.inputValue !== "" &&
-      !options.some(
-        (o) =>
-          o.Salesperson_Name.toLowerCase() ===
-          params.inputValue.toLowerCase()
-      )
-    ) {
-      filtered.push({
-        isAdd: true,
-        label: params.inputValue,
-      });
-    }
+                  return filtered;
+                }}
+                getOptionLabel={(option) => {
+                  if (option.isAdd) return `Add "${option.label}"`;
+                  if (option.isManage) return "Manage Salespersons";
+                  return option.Salesperson_Name;
+                }}
+                onChange={(event, newValue) => {
+                  if (newValue?.isAdd) {
+                    handleAddSalesperson(newValue.label);
+                  } else if (newValue?.isManage) {
+                    openManageSalespersonDialog();
+                  } else {
+                    setSalespersonValue(newValue);
+                    setHeaderData((p) => ({
+                      ...p,
+                      Salesperson_ID: newValue?.Salesperson_ID || null,
+                    }));
+                  }
+                }}
+                renderOption={(props, option) => {
+                  if (option.isManage) {
+                    return (
+                      <li {...props} style={{ borderTop: "1px solid #eee" }}>
+                        ➕ Add Salespersons
+                      </li>
+                    );
+                  }
 
-    // ADD "Manage Salespersons" (always last)
-    filtered.push({
-      isManage: true,
-    });
-
-    return filtered;
-  }}
-
-  getOptionLabel={(option) => {
-    if (option.isAdd) return `Add "${option.label}"`;
-    if (option.isManage) return "Manage Salespersons";
-    return option.Salesperson_Name;
-  }}
-
-  onChange={(event, newValue) => {
-    if (newValue?.isAdd) {
-      handleAddSalesperson(newValue.label);
-    } else if (newValue?.isManage) {
-      openManageSalespersonDialog();
-  
-    } else {
-      setSalespersonValue(newValue);
-      setHeaderData((p) => ({
-        ...p,
-        Salesperson_ID: newValue?.Salesperson_ID || null,
-      }));
-    }
-  }}
-
-  renderOption={(props, option) => {
-   
-
-    if (option.isManage) {
-      return (
-        <li {...props} style={{ borderTop: "1px solid #eee" }}>
-          ➕ Add Salespersons
-        </li>
-      );
-    }
-
-    return (
-      <li {...props}>
-        {option.Salesperson_Name}
-      </li>
-    );
-  }}
-
-  renderInput={(params) => (
-    <TextField
-      {...params}
-     margin="normal"
-      label="Salesperson"
-      placeholder="Select or Add Salesperson"
-    />
-  )}
-/>
-
-
-
+                  return <li {...props}>{option.Salesperson_Name}</li>;
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    margin="normal"
+                    label="Salesperson"
+                    placeholder="Select or Add Salesperson"
+                  />
+                )}
+              />
 
               <TextField
                 label="Remarks"
@@ -807,9 +891,7 @@ const closeManageSalespersonDialog = () => {
             padding={1}
             sx={{ backgroundColor: "whitesmoke" }}
           >
-            <Box display="flex" alignItems="center" gap={1}>
-            
-            </Box>
+            <Box display="flex" alignItems="center" gap={1}></Box>
           </Box>
 
           <Box
@@ -898,7 +980,7 @@ const closeManageSalespersonDialog = () => {
                 fullWidth
               />
 
-               <TextField
+              <TextField
                 label="Discount Rate"
                 margin="normal"
                 value={discountRate}
@@ -918,8 +1000,7 @@ const closeManageSalespersonDialog = () => {
                 fullWidth
               />
 
-              
-               <TextField
+              <TextField
                 label="Tax Rate"
                 margin="normal"
                 value={taxRate}
@@ -1061,51 +1142,112 @@ const closeManageSalespersonDialog = () => {
         />
       </Box>
 
-     <Dialog
-  open={openSalespersonDialog}
-  onClose={closeManageSalespersonDialog}
- 
-  maxWidth="50%"
->
-  <DialogTitle>Add Salesperson</DialogTitle>
+      {/* Customer Dialog */}
+      <Dialog
+        open={openCustomerDialog}
+        onClose={() => setOpenCustomerDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Add Customer</DialogTitle>
 
-  <DialogContent dividers>
-    <TextField
-      label="Salesperson Name"
-      value={spName}
-      onChange={(e) => setSpName(e.target.value)}
-      fullWidth
-      required
-      margin="normal"
-      autoFocus
-    />
+        <DialogContent dividers>
+          <TextField
+            label="Customer Name"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            fullWidth
+            required
+            margin="normal"
+            autoFocus
+          />
 
-    <TextField
-      label="Email"
-      type="email"
-      value={spEmail}
-      onChange={(e) => setSpEmail(e.target.value)}
-      fullWidth
-      margin="normal"
-    />
-  </DialogContent>
+          <TextField
+            label="Phone No"
+            type="tel"
+            value={customerPhone}
+            onChange={(e) => setCustomerPhone(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
 
-  <DialogActions>
-    <Button onClick={closeManageSalespersonDialog}>
-      Cancel
-    </Button>
+          <TextField
+            label="Email"
+            type="email"
+            value={customerEmail}
+            onChange={(e) => setCustomerEmail(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
 
-    <Button
-      onClick={handleSaveSalesperson}
-      variant="contained"
-      disabled={!spName || savingSp}
-    >
-      {savingSp ? "Saving..." : "Save"}
-    </Button>
-  </DialogActions>
-</Dialog>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Customer Type</InputLabel>
+            <Select
+              name="customerType"
+              value={customerType}
+              label="Customer Type"
+              onChange={(e) => setCustomerType(e.target.value)}
+            >
+              <MenuItem value="CR">Credit</MenuItem>
+              <MenuItem value="CS">Cash</MenuItem>
+            </Select>
+          </FormControl>
+        </DialogContent>
 
+        <DialogActions>
+          <Button onClick={() => setOpenCustomerDialog(false)}>Cancel</Button>
 
+          <Button
+            onClick={handleSaveCustomer}
+            variant="contained"
+            disabled={!customerName.trim() || savingCustomer}
+          >
+            {savingCustomer ? "Saving..." : "Save"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Salesperson Dialog */}
+      <Dialog
+        open={openSalespersonDialog}
+        onClose={closeManageSalespersonDialog}
+        maxWidth="50%"
+      >
+        <DialogTitle>Add Salesperson</DialogTitle>
+
+        <DialogContent dividers>
+          <TextField
+            label="Salesperson Name"
+            value={spName}
+            onChange={(e) => setSpName(e.target.value)}
+            fullWidth
+            required
+            margin="normal"
+            autoFocus
+          />
+
+          <TextField
+            label="Email"
+            type="email"
+            value={spEmail}
+            onChange={(e) => setSpEmail(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={closeManageSalespersonDialog}>Cancel</Button>
+
+          <Button
+            onClick={handleSaveSalesperson}
+            variant="contained"
+            disabled={!spName || savingSp}
+          >
+            {savingSp ? "Saving..." : "Save"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }

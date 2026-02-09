@@ -18,13 +18,11 @@ import {
   TableBody,
   Paper,
   Tooltip,
- Divider,
+  Divider,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
- 
-
 } from "@mui/material";
 
 import toast, { Toaster } from "react-hot-toast";
@@ -32,8 +30,8 @@ import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PrintIcon from "@mui/icons-material/Print";
 import {
-  
   addInvoice,
+  updateInvoice,
   fetchLocationMaster,
   insertBO_Tran_Adjustment,
   fetchCustomers,
@@ -53,22 +51,16 @@ import { createFilterOptions } from "@mui/material/Autocomplete";
 import { useLocation } from "react-router-dom";
 
 const calculatePrice = async (product) => {
-  const qty = parseFloat(product.quantity) || 0;
-  const price = parseFloat(product.unitPrice) || 0;
+  const qty = parseFloat(product.Quantity) || 0;
+  const price = parseFloat(product.UnitPrice) || 0;
 
   const subTotal = qty * price;
 
   return {
     ...product,
-    total: subTotal.toFixed(2),
+    Total: subTotal.toFixed(2),
   };
 };
-
-//   const customers = [
-//   { Customer_Code: "C001", Customer_Name: "ABC Traders" },
-//   { Customer_Code: "C002", Customer_Name: "XYZ Stores" },
-// ];
-
 
 export default function EditInvoice() {
   const [locationList, setLocationList] = useState([]);
@@ -76,9 +68,9 @@ export default function EditInvoice() {
   const [unitPrice, setUnitPrice] = useState("");
   const [quantity, setQuantity] = useState("");
   const [discountRate, setDiscountRate] = useState(0);
-    const [discountAmount, setDiscountAmount] = useState("");
+  const [discountAmount, setDiscountAmount] = useState("");
   const [taxRate, setTaxRate] = useState(0);
-  const [taxAmount, setTaxAmount]= useState("");
+  const [taxAmount, setTaxAmount] = useState("");
   const [total, setTotal] = useState("");
   const [productList, setProductList] = useState([]);
   const [totalSum, setTotalSum] = useState(0);
@@ -91,27 +83,22 @@ export default function EditInvoice() {
   const [added, setAdded] = useState(false);
   const [value, setValue] = useState(null);
   const [customers, setCustomers] = useState([]);
- const [salespersons, setSalespersons] = useState([]);
-const [salespersonValue, setSalespersonValue] = useState(null);
-const [salespersonInput, setSalespersonInput] = useState("");
-const [loadingSalespersons, setLoadingSalespersons] = useState(false);
-const [openSalespersonDialog, setOpenSalespersonDialog] = useState(false);
-const filter = createFilterOptions();
-const [spName, setSpName] = useState("");
-const [spEmail, setSpEmail] = useState("");
-const [savingSp, setSavingSp] = useState(false);
-const location = useLocation();
+  const [salespersons, setSalespersons] = useState([]);
+  const [salespersonValue, setSalespersonValue] = useState(null);
+  const [salespersonInput, setSalespersonInput] = useState("");
+  const [loadingSalespersons, setLoadingSalespersons] = useState(false);
+  const [openSalespersonDialog, setOpenSalespersonDialog] = useState(false);
+  const filter = createFilterOptions();
+  const [spName, setSpName] = useState("");
+  const [spEmail, setSpEmail] = useState("");
+  const [savingSp, setSavingSp] = useState(false);
+  const location = useLocation();
   const { invoice_id } = location.state || {};
 
-
-
-
-
-
   const [headerData, setHeaderData] = useState({
-    INV_Code : "New", 
-    Customer_Code : "",
-    INV_Date : today,
+    INV_Code: "New",
+    Customer_Code: "",
+    INV_Date: today,
     PO_No: "",
     INV_Tax_Amount: 0,
     INV_Additional_Charges: 0,
@@ -123,10 +110,9 @@ const location = useLocation();
     INV_Status: 0,
     Salesperson_ID: "",
     Client_ID: "",
-    INV_Type:"",
-    Remarks:""
-
-  })
+    INV_Type: "",
+    Remarks: "",
+  });
 
   const [data, setData] = useState({
     Barcode: "",
@@ -140,21 +126,18 @@ const location = useLocation();
 
   useEffect(() => {
     const getcustomersData = async () => {
-        try{
-                const data = await fetchCustomers();
-                if(data){
-                    setCustomers(data);
-                    console.log("customers:", data);
-                }
-
-        }catch(err){
-            console.error("Error fetching customers:", err);
+      try {
+        const data = await fetchCustomers();
+        if (data) {
+          setCustomers(data);
         }
-    } 
+      } catch (err) {
+        console.error("Error fetching customers:", err);
+      }
+    };
     getcustomersData();
-  }, [])
+  }, []);
 
-  console.log("header date:", headerData);
   useEffect(() => {
     const loadLocationData = async () => {
       try {
@@ -183,17 +166,14 @@ const location = useLocation();
     }
   }, [unitPrice, quantity]);
 
-  
-
-    useEffect(() => {
+  useEffect(() => {
     if (!invoice_id) return;
 
     axios
       .get(`http://localhost:5000/api/invoices/header/${invoice_id}`)
       .then((res) => {
         const data = res.data[0];
-        console.log("data:",data);
-     
+
         // Format dates safely or return empty string if null
         const formatDate = (value) => {
           if (!value) return ""; // handles null or undefined
@@ -201,25 +181,23 @@ const location = useLocation();
           return isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
         };
 
-        setHeaderData ({
-    INV_Code : data.INV_Code, 
-    Customer_Code : data.Customer_Code,
-    INV_Date : formatDate(data.INV_Date),
-    PO_No: data.PO_No,
-    INV_Tax_Amount: data.INV_Tax_Amount,
-    INV_Additional_Charges: data.INV_Additional_Charges,
-    INV_Other_Charges: data.INV_Other_Charges,
-    INV_Amount: data.INV_Amount,
-    PO_Date: data.PO_Date,
-    UserID: data.UserID,
-    Location_ID: data.Location_ID,
-    INV_Status: data.INV_Status,
-    INV_Type:data.INV_Type,
-    Salesperson_ID: data.SalesMan_Code,
-    Remarks: data.Remarks
-
-  })
-       
+        setHeaderData({
+          INV_Code: data.INV_Code,
+          Customer_Code: data.Customer_Code,
+          INV_Date: formatDate(data.INV_Date),
+          PO_No: data.PO_No,
+          INV_Tax_Amount: data.INV_Tax_Amount,
+          INV_Additional_Charges: data.INV_Additional_Charges,
+          INV_Other_Charges: data.INV_Other_Charges,
+          INV_Amount: data.INV_Amount,
+          PO_Date: data.PO_Date,
+          UserID: data.UserID,
+          Location_ID: data.Location_ID,
+          INV_Status: data.INV_Status,
+          INV_Type: data.INV_Type,
+          Salesperson_ID: data.SalesMan_Code,
+          Remarks: data.Remarks,
+        });
 
         if (data.INV_Status === 1) {
           setPosted(true);
@@ -232,16 +210,16 @@ const location = useLocation();
       });
   }, [invoice_id]);
 
-    useEffect(() => {
+  useEffect(() => {
     if (!invoice_id) return;
 
     const fetchInvoiceTran = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:5000/api/invoices/tran/${invoice_id}`
+          `http://localhost:5000/api/invoices/tran/${invoice_id}`,
         );
         const data = res.data;
-        console.log("tran data: ",  data);
+
         if (data) {
           const formattedList = data.map((item) => ({
             Barcode: item.Barcode,
@@ -249,10 +227,8 @@ const location = useLocation();
             Description: item.Description,
             UOM: item.Product_UM,
             Total: item.Total_Amount,
-            Quantity: item.INV_Qty,
-            UnitPrice: item.Unit_Price,
-
-  
+            Quantity: Number(item.INV_Qty).toFixed(2),
+            UnitPrice: Number(item.Unit_Price).toFixed(2),
           }));
           setProductList(formattedList);
         }
@@ -264,7 +240,26 @@ const location = useLocation();
     fetchInvoiceTran();
   }, [invoice_id]);
 
+  useEffect(() => {
+    if (productList.length === 0) {
+      setTotalSum(0);
+      setTaxSum(0);
+      return;
+    }
 
+    const { total } = productList.reduce(
+      (acc, item) => {
+        const itemTotal = parseFloat(item.Total) || 0;
+
+        acc.total += itemTotal;
+
+        return acc;
+      },
+      { total: 0 },
+    );
+
+    setTotalSum(total);
+  }, [productList]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -308,48 +303,49 @@ const location = useLocation();
   }, [unitPrice, quantity, discountRate, taxRate]);
 
   useEffect(() => {
-  const fetchSalespersons = async () => {
-    try {
-      setLoadingSalespersons(true);
+    const fetchSalespersons = async () => {
+      try {
+        setLoadingSalespersons(true);
 
-      const res = await axios.get("http://localhost:5000/api/salespersons", {
-        params: { location_id: "001" }
-      });
-      console.log("salespersons:", res);
-      setSalespersons(res.data);
-    } catch (err) {
-      console.error("Failed to load salespersons", err);
-    } finally {
-      setLoadingSalespersons(false);
+        const res = await axios.get("http://localhost:5000/api/salespersons", {
+          params: { location_id: "001" },
+        });
+
+        setSalespersons(res.data);
+      } catch (err) {
+        console.error("Failed to load salespersons", err);
+      } finally {
+        setLoadingSalespersons(false);
+      }
+    };
+
+    // if (headerData.Location_ID) {
+    //   fetchSalespersons();
+    // }
+    fetchSalespersons();
+  }, [headerData.Location_ID]);
+
+  useEffect(() => {
+    if (!openSalespersonDialog) {
+      setSpName("");
+      setSpEmail("");
     }
-  };
+  }, [openSalespersonDialog]);
 
-  // if (headerData.Location_ID) {
-  //   fetchSalespersons();
-  // }
-  fetchSalespersons();
-}, [headerData.Location_ID]);
+  useEffect(() => {
+    if (salespersons?.length && headerData?.Salesperson_ID) {
+      const sp = salespersons.find(
+        (s) => Number(s.Salesperson_ID) === Number(headerData.Salesperson_ID),
+      );
 
-useEffect(() => {
-  if (!openSalespersonDialog) {
-    setSpName("");
-    setSpEmail("");
-  }
-}, [openSalespersonDialog]);
-
-useEffect(() => {
-  // Sync salespersonValue when salespersons list loads or headerData.Salesperson_ID changes
-  if (salespersons && salespersons.length && headerData?.Salesperson_ID) {
-    const sp = salespersons.find(
-      (s) => s.Salesperson_ID === headerData.Salesperson_ID
-    );
-    if (sp) setSalespersonValue(sp);
-  }
-}, [salespersons, headerData.Salesperson_ID]);
+      if (sp) {
+        setSalespersonValue(sp);
+      }
+    }
+  }, [salespersons, headerData?.Salesperson_ID]);
 
   //////need to do here
   const handleProductSelect = (product) => {
-    console.log("Product selected in CreateAdjustment:", product);
     setData({
       Barcode: product.Barcode,
       Product_ID: product.Product_ID,
@@ -383,12 +379,10 @@ useEffect(() => {
     setProductList(updatedProducts);
   };
 
-
-
   const handleAddToTable = () => {
     // Prevent duplicate item by Barcode
     const isDuplicate = productList.some(
-      (item) => item.Barcode === data.Barcode
+      (item) => item.Barcode === data.Barcode,
     );
 
     if (isDuplicate) {
@@ -410,9 +404,16 @@ useEffect(() => {
 
     const newItem = {
       data,
-      unitPrice,
-      quantity: Number(quantity).toFixed(2),
-      total,
+      Barcode: data.Barcode,
+      Product_ID: data.Product_ID,
+      Description: data.Description,
+      Product_UM: data.UOM,
+      Total_Amount: total,
+      Quantity: quantity,
+      UnitPrice: data.Unit_Price,
+      // unitPrice,
+      // quantity: Number(quantity).toFixed(2),
+      Total: total,
     };
 
     setProductList((prev) => [...prev, newItem]);
@@ -432,67 +433,64 @@ useEffect(() => {
   };
 
   // Open dialog
-const openManageSalespersonDialog = () => {
-  setOpenSalespersonDialog(true);
-};
+  const openManageSalespersonDialog = () => {
+    setOpenSalespersonDialog(true);
+  };
 
-// Close dialog
-const closeManageSalespersonDialog = () => {
-  setOpenSalespersonDialog(false);
-};
+  // Close dialog
+  const closeManageSalespersonDialog = () => {
+    setOpenSalespersonDialog(false);
+  };
 
   const handleRemoveProduct = (barcode) => {
-    setProductList((prevList) =>
-      prevList.filter((p) => p.data.Barcode !== barcode)
-    );
+    setProductList((prevList) => prevList.filter((p) => p.Barcode !== barcode));
   };
 
   const handleSaveSalesperson = async () => {
-  if (!spName.trim()) return;
+    if (!spName.trim()) return;
 
-  try {
-    setSavingSp(true);
+    try {
+      setSavingSp(true);
 
-    const res = await axios.post("http://localhost:5000/api/salespersons", {
-      Salesperson_Name: spName,
-      Email: spEmail,
-      Location_ID: "001",
-    });
+      const res = await axios.post("http://localhost:5000/api/salespersons", {
+        Salesperson_Name: spName,
+        Email: spEmail,
+        Location_ID: "001",
+      });
 
-    const newSalesperson = {
-      Salesperson_ID: res.data.Salesperson_ID,
-      Salesperson_Name: spName,
-      Email: spEmail,
-    };
+      const newSalesperson = {
+        Salesperson_ID: res.data.Salesperson_ID,
+        Salesperson_Name: spName,
+        Email: spEmail,
+      };
 
-    // update dropdown list
-    setSalespersons((prev) => [...prev, newSalesperson]);
+      // update dropdown list
+      setSalespersons((prev) => [...prev, newSalesperson]);
 
-    // auto select
-    setSalespersonValue(newSalesperson);
-    setHeaderData((p) => ({
-      ...p,
-      Salesperson_ID: newSalesperson.Salesperson_ID,
-    }));
+      // auto select
+      setSalespersonValue(newSalesperson);
+      setHeaderData((p) => ({
+        ...p,
+        Salesperson_ID: newSalesperson.Salesperson_ID,
+      }));
 
-    // reset + close
-    setSpName("");
-    setSpEmail("");
-    closeManageSalespersonDialog();
-  } catch (err) {
-    alert("Failed to save salesperson");
-    console.error(err);
-  } finally {
-    setSavingSp(false);
-  }
-};
-
+      // reset + close
+      setSpName("");
+      setSpEmail("");
+      closeManageSalespersonDialog();
+    } catch (err) {
+      alert("Failed to save salesperson");
+      console.error(err);
+    } finally {
+      setSavingSp(false);
+    }
+  };
 
   const handleSubmit = async () => {
-    const { INV_Date, Location , Remarks } = headerData;
+    const { INV_Date, Location_ID, Remarks } = headerData;
 
     // // Validate required fields
-    if (!INV_Date || !Location || !Remarks ) {
+    if (!INV_Date || !Location_ID || !Remarks) {
       toast.error("Please fill in all required fields in header section.");
       return;
     }
@@ -510,18 +508,17 @@ const closeManageSalespersonDialog = () => {
       taxSum,
     };
 
-
-
     try {
-      const result = await addInvoice(payload);
+      console.log("payload:", payload);
+      const result = await updateInvoice(invoice_id, payload);
       if (result.Invoice_Code) {
         setGrnCode(result.Invoice_Code);
       }
       setAdded(true);
-      toast.success("Invoice Added");
+      toast.success("Invoice Updated");
     } catch (error) {
-      toast.error("Failed to add Invoice.");
-      console.error("Insert failed:", error.message);
+      toast.error("Failed to update Invoice.");
+      console.error("Update failed:", error.message);
     }
   };
 
@@ -537,20 +534,20 @@ const closeManageSalespersonDialog = () => {
   };
 
   const handleAddSalesperson = async (name) => {
-  // call backend API
-  const res = await axios.post("/api/salespersons", {
-    Salesperson_Name: name,
-    Location_ID: "LOC01"
-  });
+    // call backend API
+    const res = await axios.post("/api/salespersons", {
+      Salesperson_Name: name,
+      Location_ID: "LOC01",
+    });
 
-  const newPerson = {
-    Salesperson_ID: res.data.Salesperson_ID,
-    Salesperson_Name: name
+    const newPerson = {
+      Salesperson_ID: res.data.Salesperson_ID,
+      Salesperson_Name: name,
+    };
+
+    setSalespersons((prev) => [...prev, newPerson]);
+    setSalespersonValue(newPerson);
   };
-
-  setSalespersons((prev) => [...prev, newPerson]);
-  setSalespersonValue(newPerson);
-};
 
   return (
     <div>
@@ -628,37 +625,32 @@ const closeManageSalespersonDialog = () => {
                 disabled
                 fullWidth
               />
-       <Autocomplete
-  options={customers}
-  getOptionLabel={(option) => option?.Customer_Name || ""}
-
-  value={
-    customers.find((c) => c.Customer_Code === headerData.Customer_Code) ||
-    null
-  }
-
-  isOptionEqualToValue={(option, value) =>
-    option.Customer_Code === value?.Customer_Code
-  }
-
-  onChange={(event, newValue) => {
-    setHeaderData((prevData) => ({
-      ...prevData,
-      Customer_Code: newValue ? newValue.Customer_Code : ""
-    }));
-
-    console.log("Customer:", newValue);
-  }}
-
-  renderInput={(params) => (
-    <TextField
-      {...params}
-      label="Customer"
-      margin="normal"
-      fullWidth
-    />
-  )}
-/>
+              <Autocomplete
+                options={customers}
+                getOptionLabel={(option) => option?.Customer_Name || ""}
+                value={
+                  customers.find(
+                    (c) => c.Customer_Code === headerData.Customer_Code,
+                  ) || null
+                }
+                isOptionEqualToValue={(option, value) =>
+                  option.Customer_Code === value?.Customer_Code
+                }
+                onChange={(event, newValue) => {
+                  setHeaderData((prevData) => ({
+                    ...prevData,
+                    Customer_Code: newValue ? newValue.Customer_Code : "",
+                  }));
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Customer"
+                    margin="normal"
+                    fullWidth
+                  />
+                )}
+              />
               <TextField
                 label="Invoice Date"
                 name="INV_Date"
@@ -709,7 +701,7 @@ const closeManageSalespersonDialog = () => {
                     onChange={(event, newValue) => {
                       handleInputChange({
                         target: {
-                          name: "Location",
+                          name: "Location_ID",
                           value: newValue?.Location_ID || "",
                         },
                       });
@@ -724,7 +716,7 @@ const closeManageSalespersonDialog = () => {
                     )}
                     value={
                       locationList?.find(
-                        (item) => item.Location_ID === headerData.Location
+                        (item) => item.Location_ID === headerData.Location_ID,
                       ) || null
                     }
                     isOptionEqualToValue={(option, value) =>
@@ -755,103 +747,84 @@ const closeManageSalespersonDialog = () => {
                   >
                     <MenuItem value={"CR"}>Credit</MenuItem>
                     <MenuItem value={"CS"}>Cash</MenuItem>
-                  
                   </Select>
                 </FormControl>
               </Box>
 
-            
+              <Autocomplete
+                fullWidth
+                options={salespersons}
+                value={salespersonValue || null}
+                isOptionEqualToValue={(option, value) =>
+                  option.Salesperson_ID === value?.Salesperson_ID
+                }
+                inputValue={salespersonInput}
+                onInputChange={(e, newInputValue) =>
+                  setSalespersonInput(newInputValue)
+                }
+                filterOptions={(options, params) => {
+                  const filtered = filter(options, params);
 
-<Autocomplete
-  fullWidth
-  options={salespersons}
-  value={salespersonValue || null}
-  isOptionEqualToValue={(option, value) =>
-    option.Salesperson_ID === value?.Salesperson_ID
-  }
-  inputValue={salespersonInput}
-  onInputChange={(e, newInputValue) =>
-    setSalespersonInput(newInputValue)
-  }
+                  // ADD "Add Salesperson"
+                  if (
+                    params.inputValue !== "" &&
+                    !options.some(
+                      (o) =>
+                        o.Salesperson_Name.toLowerCase() ===
+                        params.inputValue.toLowerCase(),
+                    )
+                  ) {
+                    filtered.push({
+                      isAdd: true,
+                      label: params.inputValue,
+                    });
+                  }
 
- 
-  filterOptions={(options, params) => {
-    const filtered = filter(options, params);
+                  // ADD "Manage Salespersons" (always last)
+                  filtered.push({
+                    isManage: true,
+                  });
 
-    // ADD "Add Salesperson"
-    if (
-      params.inputValue !== "" &&
-      !options.some(
-        (o) =>
-          o.Salesperson_Name.toLowerCase() ===
-          params.inputValue.toLowerCase()
-      )
-    ) {
-      filtered.push({
-        isAdd: true,
-        label: params.inputValue,
-      });
-    }
+                  return filtered;
+                }}
+                getOptionLabel={(option) => {
+                  if (option.isAdd) return `Add "${option.label}"`;
+                  if (option.isManage) return "Manage Salespersons";
+                  return option.Salesperson_Name;
+                }}
+                onChange={(event, newValue) => {
+                  if (newValue?.isAdd) {
+                    handleAddSalesperson(newValue.label);
+                  } else if (newValue?.isManage) {
+                    openManageSalespersonDialog();
+                  } else {
+                    setSalespersonValue(newValue);
+                    setHeaderData((p) => ({
+                      ...p,
+                      Salesperson_ID: newValue?.Salesperson_ID || null,
+                    }));
+                  }
+                }}
+                renderOption={(props, option) => {
+                  if (option.isManage) {
+                    return (
+                      <li {...props} style={{ borderTop: "1px solid #eee" }}>
+                        ➕ Add Salespersons
+                      </li>
+                    );
+                  }
 
-    // ADD "Manage Salespersons" (always last)
-    filtered.push({
-      isManage: true,
-    });
-
-    return filtered;
-  }}
-
-  getOptionLabel={(option) => {
-    if (option.isAdd) return `Add "${option.label}"`;
-    if (option.isManage) return "Manage Salespersons";
-    return option.Salesperson_Name;
-  }}
-
-  onChange={(event, newValue) => {
-    if (newValue?.isAdd) {
-      handleAddSalesperson(newValue.label);
-    } else if (newValue?.isManage) {
-      openManageSalespersonDialog();
-  
-    } else {
-      setSalespersonValue(newValue);
-      setHeaderData((p) => ({
-        ...p,
-        Salesperson_ID: newValue?.Salesperson_ID || null,
-      }));
-    }
-  }}
-
-  renderOption={(props, option) => {
-   
-
-    if (option.isManage) {
-      return (
-        <li {...props} style={{ borderTop: "1px solid #eee" }}>
-          ➕ Add Salespersons
-        </li>
-      );
-    }
-
-    return (
-      <li {...props}>
-        {option.Salesperson_Name}
-      </li>
-    );
-  }}
-
-  renderInput={(params) => (
-    <TextField
-      {...params}
-     margin="normal"
-      label="Salesperson"
-      placeholder="Select or Add Salesperson"
-    />
-  )}
-/>
-
-
-
+                  return <li {...props}>{option.Salesperson_Name}</li>;
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    margin="normal"
+                    label="Salesperson"
+                    placeholder="Select or Add Salesperson"
+                  />
+                )}
+              />
 
               <TextField
                 label="Remarks"
@@ -873,9 +846,7 @@ const closeManageSalespersonDialog = () => {
             padding={1}
             sx={{ backgroundColor: "whitesmoke" }}
           >
-            <Box display="flex" alignItems="center" gap={1}>
-            
-            </Box>
+            <Box display="flex" alignItems="center" gap={1}></Box>
           </Box>
 
           <Box
@@ -964,7 +935,7 @@ const closeManageSalespersonDialog = () => {
                 fullWidth
               />
 
-               <TextField
+              <TextField
                 label="Discount Rate"
                 margin="normal"
                 value={discountRate}
@@ -984,8 +955,7 @@ const closeManageSalespersonDialog = () => {
                 fullWidth
               />
 
-              
-               <TextField
+              <TextField
                 label="Tax Rate"
                 margin="normal"
                 value={taxRate}
@@ -1062,9 +1032,7 @@ const closeManageSalespersonDialog = () => {
                         <TableCell align="center">
                           <IconButton
                             color="error"
-                            onClick={() =>
-                              handleRemoveProduct(item.data?.Barcode)
-                            }
+                            onClick={() => handleRemoveProduct(item.Barcode)}
                             disabled={added}
                           >
                             <DeleteIcon />
@@ -1073,9 +1041,7 @@ const closeManageSalespersonDialog = () => {
                         <TableCell>{item.Barcode}</TableCell>
                         <TableCell>{item.Product_ID}</TableCell>
                         <TableCell>{item.Description}</TableCell>
-                        <TableCell>
-                          {item.UOM || item.Product_UM}
-                        </TableCell>
+                        <TableCell>{item.UOM || item.Product_UM}</TableCell>
                         {/* <TableCell>{item.quantity}</TableCell> */}
                         {/* <TableCell>
                           <TextField
@@ -1099,7 +1065,7 @@ const closeManageSalespersonDialog = () => {
                         <EditableNumberCell
                           value={item.UnitPrice}
                           index={index}
-                          field="unitPrice"
+                          field="UnitPrice"
                           isEditing={editingRowIndex === index}
                           onEditStart={() => setEditingRowIndex(index)}
                           onEditEnd={() => setEditingRowIndex(null)}
@@ -1127,51 +1093,46 @@ const closeManageSalespersonDialog = () => {
         />
       </Box>
 
-     <Dialog
-  open={openSalespersonDialog}
-  onClose={closeManageSalespersonDialog}
- 
-  maxWidth="50%"
->
-  <DialogTitle>Add Salesperson</DialogTitle>
+      <Dialog
+        open={openSalespersonDialog}
+        onClose={closeManageSalespersonDialog}
+        maxWidth="50%"
+      >
+        <DialogTitle>Add Salesperson</DialogTitle>
 
-  <DialogContent dividers>
-    <TextField
-      label="Salesperson Name"
-      value={spName}
-      onChange={(e) => setSpName(e.target.value)}
-      fullWidth
-      required
-      margin="normal"
-      autoFocus
-    />
+        <DialogContent dividers>
+          <TextField
+            label="Salesperson Name"
+            value={spName}
+            onChange={(e) => setSpName(e.target.value)}
+            fullWidth
+            required
+            margin="normal"
+            autoFocus
+          />
 
-    <TextField
-      label="Email"
-      type="email"
-      value={spEmail}
-      onChange={(e) => setSpEmail(e.target.value)}
-      fullWidth
-      margin="normal"
-    />
-  </DialogContent>
+          <TextField
+            label="Email"
+            type="email"
+            value={spEmail}
+            onChange={(e) => setSpEmail(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+        </DialogContent>
 
-  <DialogActions>
-    <Button onClick={closeManageSalespersonDialog}>
-      Cancel
-    </Button>
+        <DialogActions>
+          <Button onClick={closeManageSalespersonDialog}>Cancel</Button>
 
-    <Button
-      onClick={handleSaveSalesperson}
-      variant="contained"
-      disabled={!spName || savingSp}
-    >
-      {savingSp ? "Saving..." : "Save"}
-    </Button>
-  </DialogActions>
-</Dialog>
-
-
+          <Button
+            onClick={handleSaveSalesperson}
+            variant="contained"
+            disabled={!spName || savingSp}
+          >
+            {savingSp ? "Saving..." : "Save"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }

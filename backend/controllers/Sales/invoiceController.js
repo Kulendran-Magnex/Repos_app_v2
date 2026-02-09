@@ -447,7 +447,7 @@ exports.createInvoice = async (req, res) => {
   const { header_data, product_list, total_tax, total_sum } = req.body;
   const client_id = "940T0003";
   const userID = "01";
-
+  console.log("Amount:", total_sum);
   if (!client_id) {
     return res.status(401).json({ message: "Unauthorized" });
   }
@@ -459,12 +459,14 @@ exports.createInvoice = async (req, res) => {
     INV_Tax_Amount,
     INV_Additional_Charges,
     INV_Other_Charges,
+    INV_Type,
     INV_Amount,
     PO_Date,
     UserID,
     Location_ID,
     INV_Status,
-    Client_ID,
+    Salesperson_ID,
+    Remarks,
   } = header_data;
 
   const client = await db.connect();
@@ -497,9 +499,9 @@ exports.createInvoice = async (req, res) => {
         "INV_Code","Customer_Code","INV_Date","PO_No",
         "INV_Tax_Amount","INV_Additional_Charges","INV_Other_Charges",
         "INV_Amount","PO_Date","UserID","Location_ID",
-        "INV_Status","Client_ID"
+        "INV_Status","SalesMan_Code","Remarks","INV_Type","Client_ID"
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
       )
       `,
       [
@@ -510,11 +512,14 @@ exports.createInvoice = async (req, res) => {
         INV_Tax_Amount,
         INV_Additional_Charges,
         INV_Other_Charges,
-        INV_Amount,
+        total_sum,
         PO_Date ? PO_Date : null,
         UserID,
         Location_ID,
         INV_Status,
+        Salesperson_ID,
+        Remarks,
+        INV_Type,
         client_id,
       ],
     );
@@ -575,6 +580,326 @@ exports.createInvoice = async (req, res) => {
     await client.query("ROLLBACK");
     console.error(err);
     res.status(500).json({ message: "Database error", error: err.message });
+  } finally {
+    client.release();
+  }
+};
+
+// exports.updateInvoice = async (req, res) => {
+//   const { INV_Code } = req.params;
+//   // const client_id = req.user?.client_id;
+//   const client_id = "940T0003";
+
+//   if (!client_id) {
+//     return res.status(401).json({ message: "Unauthorized" });
+//   }
+
+//   const { header_data, product_list, total_tax, total_sum } = req.body;
+//   console.log("Update Payload:", req.body, INV_Code);
+//   const {
+//     Customer_Code,
+//     INV_Additional_Charges,
+//     INV_Date,
+//     INV_Other_Charges,
+//     INV_Status,
+//     INV_Tax_Amount,
+//     INV_Type,
+//     Location_ID,
+//     PO_Date,
+//     PO_No,
+//     Remarks,
+//     Salesperson_ID,
+//     UserID,
+//   } = header_data;
+
+//   const currentDate = new Date();
+//   const client = await db.connect();
+
+//   try {
+//     await client.query("BEGIN");
+
+//     /* ===============================
+//        1️⃣ Update Invoice Header
+//     =============================== */
+//     const updateHeaderResult = await client.query(
+//       `
+//       UPDATE invoice_header
+//       SET
+//         "Location_ID"     = $1,
+//         "INV_Date" = $2,
+//         "INV_Status" = $3,
+//         "Remarks" = $4,
+//         "INV_Amount"    = $5,
+//         "Customer_Code" = $6,
+//         "PO_No" = $7,
+//          "INV_Tax_Amount" = $8,
+//          "INV_Additional_Charges" = $9,
+//          "INV_Other_Charges" = $10
+
+//       WHERE "INV_Code" = $11
+//         AND "Client_ID"     = $12
+//       `,
+//       [
+//         Location_ID,
+
+//         INV_Date,
+//         INV_Status,
+//         Remarks,
+//         total_sum,
+//         Customer_Code,
+//         PO_No,
+//         INV_Tax_Amount,
+//         INV_Additional_Charges,
+//         INV_Other_Charges,
+//         INV_Code,
+//         client_id,
+//       ],
+//     );
+
+//     if (updateHeaderResult.rowCount === 0) {
+//       throw new Error("Invoice  not updated");
+//     }
+
+//     /* ===============================
+//        2️⃣ Delete old details
+//     =============================== */
+//     await client.query(
+//       `
+//       DELETE FROM invoice_tran
+//       WHERE "INV_Code" = $1
+//         AND "Client_ID"     = $2
+//       `,
+//       [INV_Code, client_id],
+//     );
+
+//     /* ===============================
+//        3️⃣ Prepare UNNEST arrays
+//     =============================== */
+//     if (Array.isArray(productList) && productList.length > 0) {
+//       const columns = rows[0].map((_, i) => rows.map((r) => r[i]));
+
+//       /* ---------- Bulk Insert using UNNEST ---------- */
+//       await client.query(
+//         `
+//       INSERT INTO "invoice_tran" (
+//         "INV_Code","Entry_Date","Product_ID","Barcode","Product_UM",
+//         "INV_Qty","Unit_Price","Discount_Percent","Discount_Amount",
+//         "Total_Amount","UserID","Client_ID","Location_ID",
+//         "Tax_Rate","Tax_Amount","Tax_Group_Code","Description"
+//       )
+//       SELECT *
+//       FROM UNNEST (
+//         $1::text[], $2::timestamp[], $3::text[], $4::text[], $5::text[],
+//         $6::numeric[], $7::numeric[], $8::numeric[], $9::numeric[],
+//         $10::numeric[], $11::text[], $12::text[], $13::text[],
+//         $14::numeric[], $15::numeric[], $16::text[], $17::text[]
+//       )
+//       `,
+//         columns,
+//       );
+//     }
+
+//     await client.query("COMMIT");
+
+//     return res.json({
+//       message: "Invoice updated successfully",
+//       INV_Code,
+//     });
+//   } catch (err) {
+//     await client.query("ROLLBACK");
+//     console.error("Update Invoice Error:", err);
+
+//     return res.status(500).json({
+//       message: "Database error",
+//       error: err.message,
+//     });
+//   } finally {
+//     client.release();
+//   }
+// };
+
+exports.updateInvoice = async (req, res) => {
+  const { INV_Code } = req.params;
+
+  const CLIENT_ID = "940T0003";
+  const SYSTEM_USER_ID = "01";
+
+  if (!CLIENT_ID) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  /* ===============================
+     Normalize payload
+  =============================== */
+  const { header_data, total_sum } = req.body;
+  const productList = req.body.productList || req.body.product_list;
+
+  console.log("Update Payload:", req.body, INV_Code);
+
+  if (!header_data) {
+    return res.status(400).json({ message: "Header data missing" });
+  }
+
+  if (!Array.isArray(productList)) {
+    return res.status(400).json({ message: "Invalid product list" });
+  }
+
+  const {
+    Customer_Code,
+    INV_Date,
+    PO_No,
+    INV_Tax_Amount,
+    INV_Additional_Charges,
+    INV_Other_Charges,
+    PO_Date,
+    Location_ID,
+    INV_Status,
+    INV_Type,
+    Salesperson_ID,
+    Remarks,
+  } = header_data;
+
+  if (!Customer_Code || !INV_Date || !Location_ID) {
+    return res.status(400).json({
+      message: "Missing required header fields",
+    });
+  }
+
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    /* ===============================
+       1️⃣ Update Invoice Header
+    =============================== */
+    const updateHeaderResult = await client.query(
+      `
+      UPDATE "invoice_header"
+      SET
+        "Location_ID" = $1,
+        "INV_Date" = $2,
+        "INV_Status" = $3,
+        "Remarks" = $4,
+        "INV_Amount" = $5,
+        "Customer_Code" = $6,
+        "PO_No" = $7,
+        "INV_Tax_Amount" = $8,
+        "INV_Additional_Charges" = $9,
+        "INV_Other_Charges" = $10,
+        "SalesMan_Code" = $11,
+        "INV_Type" = $12,
+        "PO_Date" = $13
+      WHERE "INV_Code" = $14
+        AND "Client_ID" = $15
+      `,
+      [
+        Location_ID,
+        new Date(INV_Date),
+        INV_Status ?? "OPEN",
+        Remarks ?? null,
+        Number(total_sum ?? 0),
+        Customer_Code,
+        PO_No || null,
+        Number(INV_Tax_Amount ?? 0),
+        Number(INV_Additional_Charges ?? 0),
+        Number(INV_Other_Charges ?? 0),
+        Salesperson_ID ?? null,
+        INV_Type ?? "NORMAL",
+        PO_Date ? new Date(PO_Date) : null,
+        INV_Code,
+        CLIENT_ID,
+      ],
+    );
+
+    if (updateHeaderResult.rowCount === 0) {
+      throw new Error("Invoice header not updated");
+    }
+
+    /* ===============================
+       2️⃣ Delete old invoice items
+    =============================== */
+    await client.query(
+      `
+      DELETE FROM "invoice_tran"
+      WHERE "INV_Code" = $1
+        AND "Client_ID" = $2
+      `,
+      [INV_Code, CLIENT_ID],
+    );
+
+    /* ===============================
+       3️⃣ Prepare transaction rows
+    =============================== */
+    if (productList.length > 0) {
+      const rows = productList.map((item) => {
+        // supports BOTH create & edit payload shapes
+        const p = item.data || item;
+
+        return [
+          INV_Code,
+          new Date(),
+          p.Product_ID ?? null,
+          p.Barcode ?? null,
+          p.UOM ?? null,
+          Number(item.quantity ?? item.Quantity ?? 0),
+          Number(item.unitPrice ?? item.UnitPrice ?? 0),
+          Number(item.discountRate ?? 0),
+          Number(item.discountAmount ?? 0),
+          Number(item.total ?? item.Total ?? 0),
+          SYSTEM_USER_ID,
+          CLIENT_ID,
+          Location_ID,
+          Number(0),
+          Number(item.taxAmount ?? 0),
+          item.TaxGroup ?? null,
+          p.Description ?? null,
+        ];
+      });
+
+      if (!rows.length) {
+        throw new Error("No transaction rows prepared");
+      }
+
+      const columns = rows[0].map((_, i) => rows.map((r) => r[i]));
+
+      /* ===============================
+         4️⃣ Bulk insert using UNNEST
+      =============================== */
+      await client.query(
+        `
+        INSERT INTO "invoice_tran" (
+          "INV_Code","Entry_Date","Product_ID","Barcode","Product_UM",
+          "INV_Qty","Unit_Price","Discount_Percent","Discount_Amount",
+          "Total_Amount","UserID","Client_ID","Location_ID",
+          "Tax_Rate","Tax_Amount","Tax_Group_Code","Description"
+        )
+        SELECT *
+        FROM UNNEST (
+          $1::text[], $2::timestamp[], $3::text[], $4::text[], $5::text[],
+          $6::numeric[], $7::numeric[], $8::numeric[], $9::numeric[],
+          $10::numeric[], $11::text[], $12::text[], $13::text[],
+          $14::numeric[], $15::numeric[], $16::text[], $17::text[]
+        )
+        `,
+        columns,
+      );
+    }
+
+    await client.query("COMMIT");
+
+    return res.json({
+      message: "Invoice updated successfully",
+      INV_Code,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Update Invoice Error:", err);
+
+    return res.status(500).json({
+      message: "Database error",
+      error: err.message,
+    });
   } finally {
     client.release();
   }

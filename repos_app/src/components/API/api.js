@@ -719,6 +719,8 @@ export const addInvoice = async (payload) => {
   const dataToSend = {
     product_list,
     header_data,
+    total_tax: payload.totalTax,
+    total_sum: payload.totalSum,
 
     // Include any other necessary fields from payload, renamed if needed
   };
@@ -728,5 +730,30 @@ export const addInvoice = async (payload) => {
     return response.data;
   } catch (error) {
     throw new Error(`Failed to fetch data: ${error.message}`);
+  }
+};
+
+export const updateInvoice = async (INV_Code, payload) => {
+  console.log("Payload in updateInvoice:", payload);
+  // Map original variable names to internal ones
+  const product_list = payload.productList;
+  const header_data = payload.headerData;
+
+  // Build the safe data object to send
+  const dataToSend = {
+    product_list,
+    header_data,
+    total_tax: payload.totalTax,
+    total_sum: payload.totalSum,
+
+    // Include any other necessary fields from payload, renamed if needed
+  };
+
+  try {
+    const response = await axios.put(`${Invoice_URL}/${INV_Code}`, dataToSend);
+
+    return response.data;
+  } catch (error) {
+    throw new Error(`Failed to update invoice: ${error.message}`);
   }
 };
