@@ -46,6 +46,7 @@ import CreateInvoice from "./components/Sales/Invoice/CreateInvoice";
 import InvoiceList from "./components/Sales/Invoice/ViewInvoice";
 import InvoicePreview from "./components/Sales/Invoice/InvoicePreview";
 import EditInvoice from "./components/Sales/Invoice/EditInvoice";
+import RecordPayment from "./components/Sales/Payment/RecordPayment";
 import { element } from "prop-types";
 import { ViewList } from "@mui/icons-material";
 
@@ -111,21 +112,20 @@ const routes = [
 
   // Inventory Transfer
 
-  { path: "/transfer/view", element: <ViewTransfer />},
-  { path: "/transfer/create", element: <CreateTransfer />},
-  {path: "/transfer/edit", element: <EditTransfer/>},
-
+  { path: "/transfer/view", element: <ViewTransfer /> },
+  { path: "/transfer/create", element: <CreateTransfer /> },
+  { path: "/transfer/edit", element: <EditTransfer /> },
 
   { path: "/customer/list", element: <CustomerList /> },
   { path: "/customer/form", element: <CustomerForm /> },
-  { path: "/customers", element: <CustomerPage/>},
+  { path: "/customers", element: <CustomerPage /> },
 
-  
-  { path: "/invoice/create", element: <CreateInvoice/>},
-  { path: "/invoice/view", element: <InvoiceList/>},
-  { path: "/invoice/preview/:id", element: <InvoicePreview/>},
-  { path: "/invoices", element: <InvoiceList/>},
-    { path: "/invoice/edit", element: <EditInvoice/>}
+  { path: "/invoice/create", element: <CreateInvoice /> },
+  { path: "/invoice/view", element: <InvoiceList /> },
+  { path: "/invoice/preview/:id", element: <InvoicePreview /> },
+  { path: "/invoices", element: <InvoiceList /> },
+  { path: "/invoice/edit", element: <EditInvoice /> },
+  { path: "/payment/record", element: <RecordPayment /> },
 ];
 
 export default routes;

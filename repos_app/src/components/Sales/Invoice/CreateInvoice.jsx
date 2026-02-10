@@ -455,6 +455,8 @@ export default function CreateInvoice() {
       taxSum,
     };
 
+    console.log("Payload:", payload);
+
     try {
       const result = await addInvoice(payload);
       if (result.Invoice_Code) {

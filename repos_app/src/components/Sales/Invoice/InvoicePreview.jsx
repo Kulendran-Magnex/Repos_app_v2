@@ -14,6 +14,14 @@ import {
   TableHead,
   TableRow,
   CircularProgress,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Alert,
+  AlertTitle,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
@@ -23,6 +31,8 @@ const InvoicePreview = () => {
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
 
   const invoiceNumber = location.state?.invoice_number;
 
@@ -47,7 +57,7 @@ const InvoicePreview = () => {
     try {
       const response = await axios.get(
         `http://localhost:5000/api/invoices/${id}/pdf`,
-        { responseType: "blob" }
+        { responseType: "blob" },
       );
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
@@ -61,9 +71,37 @@ const InvoicePreview = () => {
     }
   };
 
+  const handleRecordPayment = async () => {
+    try {
+      const amount = Number(paymentAmount);
+      if (amount <= 0) {
+        alert("Please enter a valid payment amount");
+        return;
+      }
+      // TODO: Replace with actual payment API endpoint
+      await axios.post(`http://localhost:5000/api/invoices/${id}/payment`, {
+        payment_amount: amount,
+      });
+      alert("Payment recorded successfully");
+      setOpenPaymentDialog(false);
+      setPaymentAmount("");
+      // Refresh invoice data
+      const res = await axios.get(`http://localhost:5000/api/invoices/${id}`);
+      setInvoice(res.data);
+    } catch (err) {
+      console.error("Failed to record payment", err);
+      alert("Failed to record payment");
+    }
+  };
+
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
         <CircularProgress />
       </Box>
     );
@@ -88,50 +126,124 @@ const InvoicePreview = () => {
 
   const items = invoice.items || [];
   // ensure numeric calculations (items may contain string values)
-  const subTotal = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  const subTotal = items.reduce(
+    (sum, item) => sum + (Number(item.amount) || 0),
+    0,
+  );
   const taxAmount = Number(invoice.tax_amount) || 0;
   const total = subTotal + taxAmount;
-  const paymentMade = Number(invoice.payment_made) || 0;
+  const paymentMade = Number(invoice.paid_amount) || 0;
   const balanceDue = total - paymentMade;
 
-  const fmt = (n) => Number(n || 0).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  // Check if payment is overdue
+  const isOverdue =
+    invoice.due_date &&
+    new Date(invoice.due_date) < new Date() &&
+    balanceDue > 0 &&
+    invoice.INV_Posted === 0;
+
+  const fmt = (n) =>
+    Number(n || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
 
   return (
     <Box p={2}>
-    
-
       {/* Action toolbar (outside invoice) */}
       <Box display="flex" justifyContent="flex-start" mb={2}>
         <Box display="flex" gap={1}>
-            <Button
-            variant="contained"
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate("/invoices")}
-   
-      >
-        Back to Invoices
-      </Button>
           <Button
-  variant="outlined"
-  color="primary"
-  onClick={() =>
-    navigate("/invoice/edit", {
-      state: { invoice_id: invoiceNumber },
-    })
-  }
->
-  Edit Invoice
-</Button>
-          <Button variant="outlined" onClick={handleDownloadPDF}>Download PDF</Button>
+            variant="contained"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/invoices")}
+          >
+            Back to Invoices
+          </Button>
+          {invoice?.INV_Posted !== 1 && (
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() =>
+                navigate("/invoice/edit", {
+                  state: { invoice_id: invoiceNumber },
+                })
+              }
+            >
+              Edit Invoice
+            </Button>
+          )}
+          <Button variant="outlined" onClick={handleDownloadPDF}>
+            Download PDF
+          </Button>
           <Button variant="outlined">Print</Button>
           <Button variant="outlined">Send Email</Button>
         </Box>
       </Box>
 
-      <Paper sx={{ p: 4, maxWidth: 900, mx: "auto" }}>
+      {/* Payment Status Banner */}
+      {invoice?.INV_Posted !== 1 && (
+        <Alert
+          severity="warning"
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              variant="contained"
+              onClick={() => setOpenPaymentDialog(true)}
+              sx={{
+                backgroundColor: "#2196F3",
+                color: "white",
+                position: "relative",
+                right: 50,
+                top: 12,
+              }}
+            >
+              Record Payment
+            </Button>
+          }
+          sx={{ mb: 2 }}
+        >
+          <AlertTitle>Payment is pending</AlertTitle>
+          <Typography variant="body2">
+            Payment is pending. Send a payment reminder or record payment.{" "}
+          </Typography>
+        </Alert>
+      )}
+
+      <Paper sx={{ p: 4, maxWidth: 900, mx: "auto", position: "relative" }}>
+        {/* Overdue Ribbon */}
+        {isOverdue && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: 150,
+              height: 150,
+              overflow: "hidden",
+            }}
+          >
+            <Box
+              sx={{
+                position: "absolute",
+                top: 12,
+                left: -35,
+                width: 200,
+                backgroundColor: "#FF9800",
+                color: "white",
+                textAlign: "center",
+                fontWeight: "bold",
+                fontSize: "0.75rem",
+                padding: "5px 40px",
+                transform: "rotate(-45deg)",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+              }}
+            >
+              OVERDUE
+            </Box>
+          </Box>
+        )}
         {/* Header */}
         <Grid container spacing={2} mb={4}>
           <Grid item xs={6}>
@@ -149,9 +261,27 @@ const InvoicePreview = () => {
             </Typography>
           </Grid>
           <Grid item xs={6} textAlign="right">
-            <Typography variant="h4" sx={{ fontWeight: "bold" }}>
-              INVOICE
-            </Typography>
+            <Box
+              display="flex"
+              justifyContent="flex-end"
+              alignItems="center"
+              gap={2}
+              mb={1}
+            >
+              <Typography variant="h4" sx={{ fontWeight: "bold" }}>
+                INVOICE
+              </Typography>
+              <Chip
+                label={invoice.INV_Posted === 1 ? "Paid" : "Draft"}
+                sx={{
+                  fontSize: "0.875rem",
+                  fontWeight: "bold",
+                  backgroundColor:
+                    invoice.INV_Posted === 1 ? "#4caf50" : "#000000",
+                  color: "#ffffff",
+                }}
+              />
+            </Box>
             <Typography variant="h6" color="textSecondary">
               # {invoiceNumber || invoice.invoice_number}
             </Typography>
@@ -178,7 +308,9 @@ const InvoicePreview = () => {
           <Grid item xs={6}>
             <Box display="flex" flexDirection="column" alignItems="flex-end">
               <Box display="flex" gap={2} alignItems="center" mb={1}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>Invoice Date:</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  Invoice Date:
+                </Typography>
                 <Typography variant="body2">
                   {invoice.invoice_date
                     ? new Date(invoice.invoice_date).toLocaleDateString("en-GB")
@@ -187,16 +319,11 @@ const InvoicePreview = () => {
               </Box>
 
               <Box display="flex" gap={2} alignItems="center" mb={1}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>Terms:</Typography>
-                <Typography variant="body2">{invoice.payment_terms || "Due on Receipt"}</Typography>
-              </Box>
-
-              <Box display="flex" gap={2} alignItems="center">
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>Due Date:</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  Terms:
+                </Typography>
                 <Typography variant="body2">
-                  {invoice.due_date
-                    ? new Date(invoice.due_date).toLocaleDateString("en-GB")
-                    : ""}
+                  {invoice.payment_terms || "Due on Receipt"}
                 </Typography>
               </Box>
             </Box>
@@ -208,17 +335,28 @@ const InvoicePreview = () => {
           <Table>
             <TableHead sx={{ backgroundColor: "#333" }}>
               <TableRow>
-                <TableCell sx={{ color: "white", fontWeight: "bold" }}>#</TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                  #
+                </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
                   Item & Description
                 </TableCell>
-                <TableCell align="right" sx={{ color: "white", fontWeight: "bold" }}>
+                <TableCell
+                  align="right"
+                  sx={{ color: "white", fontWeight: "bold" }}
+                >
                   Qty
                 </TableCell>
-                <TableCell align="right" sx={{ color: "white", fontWeight: "bold" }}>
+                <TableCell
+                  align="right"
+                  sx={{ color: "white", fontWeight: "bold" }}
+                >
                   Rate
                 </TableCell>
-                <TableCell align="right" sx={{ color: "white", fontWeight: "bold" }}>
+                <TableCell
+                  align="right"
+                  sx={{ color: "white", fontWeight: "bold" }}
+                >
                   Amount
                 </TableCell>
               </TableRow>
@@ -266,7 +404,9 @@ const InvoicePreview = () => {
             {invoice.tax_amount > 0 && (
               <Box display="flex" justifyContent="space-between" mb={1}>
                 <Typography variant="body2">Tax</Typography>
-                <Typography variant="body2">{fmt(invoice.tax_amount)}</Typography>
+                <Typography variant="body2">
+                  {fmt(invoice.tax_amount)}
+                </Typography>
               </Box>
             )}
             <Box
@@ -323,6 +463,43 @@ const InvoicePreview = () => {
 
         {/* (Action toolbar moved to top outside the invoice) */}
       </Paper>
+
+      {/* Payment Dialog */}
+      <Dialog
+        open={openPaymentDialog}
+        onClose={() => setOpenPaymentDialog(false)}
+      >
+        <DialogTitle>Record Payment</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2, minWidth: 400 }}>
+            <Typography variant="body2" sx={{ mb: 2 }}>
+              Invoice Amount: <strong>{fmt(total)}</strong>
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 2 }}>
+              Balance Due: <strong>{fmt(balanceDue)}</strong>
+            </Typography>
+            <TextField
+              fullWidth
+              label="Payment Amount"
+              type="number"
+              value={paymentAmount}
+              onChange={(e) => setPaymentAmount(e.target.value)}
+              inputProps={{ step: "0.01", min: "0" }}
+              sx={{ mb: 2 }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenPaymentDialog(false)}>Cancel</Button>
+          <Button
+            onClick={handleRecordPayment}
+            variant="contained"
+            color="success"
+          >
+            Record Payment
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

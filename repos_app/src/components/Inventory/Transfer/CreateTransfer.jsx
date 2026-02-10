@@ -27,7 +27,7 @@ import {
   addAdjustment,
   fetchLocationMaster,
   addTransfer,
-  insertBO_Tran_Transfer
+  insertBO_Tran_Transfer,
 } from "../../API/api";
 import SearchDialog from "../SearchDialog";
 import { useNavigate } from "react-router-dom";
@@ -128,7 +128,7 @@ export default function CreateTransfer() {
 
         return acc;
       },
-      { total: 0 }
+      { total: 0 },
     );
 
     setTotalSum(total);
@@ -165,7 +165,7 @@ export default function CreateTransfer() {
       Quantity: product.UM_QTY,
       Total: "",
     });
-   setUnitPrice(Number(product.avg_Cost).toFixed(2));
+    setUnitPrice(Number(product.avg_Cost).toFixed(2));
     setOpenAddModal(false); // Optionally close dialog
   };
 
@@ -189,12 +189,10 @@ export default function CreateTransfer() {
     setProductList(updatedProducts);
   };
 
-
-
   const handleAddToTable = () => {
     // Prevent duplicate item by Barcode
     const isDuplicate = productList.some(
-      (item) => item.data?.Barcode === data.Barcode
+      (item) => item.data?.Barcode === data.Barcode,
     );
 
     if (isDuplicate) {
@@ -239,7 +237,7 @@ export default function CreateTransfer() {
 
   const handleRemoveProduct = (barcode) => {
     setProductList((prevList) =>
-      prevList.filter((p) => p.data.Barcode !== barcode)
+      prevList.filter((p) => p.data.Barcode !== barcode),
     );
   };
 
@@ -247,7 +245,7 @@ export default function CreateTransfer() {
     const { Transfer_Date, From_Location, To_Location, Remarks } = headerData;
 
     // // Validate required fields
-    if (!Transfer_Date || !From_Location || !To_Location || !Remarks ) {
+    if (!Transfer_Date || !From_Location || !To_Location || !Remarks) {
       toast.error("Please fill in all required fields in header section.");
       return;
     }
@@ -267,8 +265,6 @@ export default function CreateTransfer() {
 
     console.log("Payload:", payload);
 
-
-
     try {
       const result = await addTransfer(payload);
       console.log("Response:", result);
@@ -276,7 +272,7 @@ export default function CreateTransfer() {
         setHeaderData((prev) => ({
           ...prev,
           Transfer_ID: result.Transfer_Code,
-        }))
+        }));
         setTransferCode(result.Transfer_Code);
       }
       setAdded(true);
@@ -415,7 +411,7 @@ export default function CreateTransfer() {
                 </FormControl>
               </Box>
 
-                <TextField
+              <TextField
                 label="Created By"
                 name="Created_By"
                 value={headerData.Created_By}
@@ -450,7 +446,7 @@ export default function CreateTransfer() {
                     )}
                     value={
                       locationList?.find(
-                        (item) => item.Location_ID === headerData.From_Location
+                        (item) => item.Location_ID === headerData.From_Location,
                       ) || null
                     }
                     isOptionEqualToValue={(option, value) =>
@@ -461,10 +457,13 @@ export default function CreateTransfer() {
                 </FormControl>
               </Box>
 
-                 <Box>
+              <Box>
                 <FormControl fullWidth margin="normal">
                   <Autocomplete
-                    options={locationList}
+                    options={locationList.filter(
+                      (location) =>
+                        location.Location_ID !== headerData.From_Location,
+                    )}
                     getOptionLabel={(option) => option.Location_Name || ""}
                     onChange={(event, newValue) => {
                       handleInputChange({
@@ -484,7 +483,7 @@ export default function CreateTransfer() {
                     )}
                     value={
                       locationList?.find(
-                        (item) => item.Location_ID === headerData.To_Location
+                        (item) => item.Location_ID === headerData.To_Location,
                       ) || null
                     }
                     isOptionEqualToValue={(option, value) =>
@@ -494,10 +493,6 @@ export default function CreateTransfer() {
                   />
                 </FormControl>
               </Box>
-
-           
-
-            
 
               <TextField
                 label="Remarks"

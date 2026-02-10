@@ -15,7 +15,8 @@ exports.getInvoices = async (req, res) => {
         cm."Customer_Name"     AS customer_name,
         ih."INV_Status"        AS invoice_status,
         ih."INV_Amount"        AS amount,
-        ih."Location_ID"       AS location_id
+        ih."Location_ID"       AS location_id,
+        ih."INV_Posted"
       FROM "invoice_header" ih
       LEFT JOIN "customer_master" cm
         ON cm."Customer_Code" = ih."Customer_Code"
@@ -103,6 +104,8 @@ exports.getInvoiceById = async (req, res) => {
         ih."INV_Amount"        AS total_amount,
         ih."INV_Tax_Amount"    AS tax_amount,
         ih."Location_ID"       AS location_id,
+        ih."INV_Posted" ,
+        ih."Paid_Amount" as paid_amount,
         cm."Customer_Code"     AS customer_code,
         cm."Customer_Name"     AS customer_name,
         cm."Address"  AS customer_address
@@ -113,6 +116,7 @@ exports.getInvoiceById = async (req, res) => {
       WHERE ih."Client_ID" = $1
         AND ih."INV_Code" = $2
       `,
+
       [client_id, id],
     );
 
@@ -183,7 +187,8 @@ exports.getInvoicePDF = async (req, res) => {
         ih."Location_ID"       AS location_id,
         cm."Customer_Code"     AS customer_code,
         cm."Customer_Name"     AS customer_name,
-        cm."Address"  AS customer_address
+        cm."Address"  AS customer_address,
+        ih."INV_Posted"        AS invoice_posted
       FROM "invoice_header" ih
       LEFT JOIN "customer_master" cm
         ON cm."Customer_Code" = ih."Customer_Code"
@@ -796,7 +801,7 @@ exports.updateInvoice = async (req, res) => {
       [
         Location_ID,
         new Date(INV_Date),
-        INV_Status ?? "OPEN",
+        INV_Status ?? 0,
         Remarks ?? null,
         Number(total_sum ?? 0),
         Customer_Code,
