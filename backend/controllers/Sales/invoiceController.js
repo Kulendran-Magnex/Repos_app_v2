@@ -168,6 +168,111 @@ exports.getInvoiceById = async (req, res) => {
   }
 };
 
+exports.getInvoicesByCustomerId = async (req, res) => {
+  const client_id = "940T0003"; // later from token
+  const { id } = req.params; // id = Customer_Code
+
+  try {
+    const result = await db.query(
+      `
+      SELECT
+        ih."INV_Code"        AS invoice_number,
+        ih."INV_Date"        AS invoice_date,
+        ih."PO_No"           AS po_order,
+        ih."PO_Date"         AS po_date,
+        ih."INV_Status"      AS invoice_status,
+        ih."INV_Amount"      AS total_amount,
+        ih."INV_Tax_Amount"  AS tax_amount,
+        ih."Location_ID"     AS location_id,
+        ih."INV_Posted"      AS invoice_posted,
+        ih."Paid_Amount"     AS paid_amount,
+        cm."Customer_Code"   AS customer_code,
+        cm."Customer_Name"   AS customer_name,
+        cm."Address"         AS customer_address,
+
+        it."Product_ID"      AS product_id,
+        it."Description"     AS product_name,
+        it."Product_UM"      AS unit,
+        it."INV_Qty"         AS quantity,
+        it."Unit_Price"      AS rate,
+        it."Total_Amount"    AS amount,
+        it."Tax_Amount"      AS item_tax_amount,
+        it."Tax_Group_Code"  AS tax_group
+
+      FROM "invoice_header" ih
+      LEFT JOIN "customer_master" cm
+        ON cm."Customer_Code" = ih."Customer_Code"
+       AND cm."Client_ID" = ih."Client_ID"
+
+      LEFT JOIN "invoice_tran" it
+        ON it."INV_Code" = ih."INV_Code"
+       AND it."Client_ID" = ih."Client_ID"
+
+      WHERE ih."Client_ID" = $1
+        AND ih."Customer_Code" = $2
+        AND ih."INV_Posted" = 0
+
+      ORDER BY ih."INV_Date" DESC, ih."INV_Code"
+      `,
+      [client_id, id],
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "No invoices found" });
+    }
+
+    // 🔥 Group invoices properly
+    const invoicesMap = {};
+
+    result.rows.forEach((row) => {
+      const invoiceNumber = row.invoice_number;
+
+      if (!invoicesMap[invoiceNumber]) {
+        invoicesMap[invoiceNumber] = {
+          invoice_number: row.invoice_number,
+          invoice_date: row.invoice_date,
+          po_order: row.po_order,
+          po_date: row.po_date,
+          invoice_status: row.invoice_status,
+          total_amount: row.total_amount,
+          tax_amount: row.tax_amount,
+          location_id: row.location_id,
+          paid_amount: row.paid_amount,
+          customer_code: row.customer_code,
+          customer_name: row.customer_name,
+          customer_address: row.customer_address,
+          currency: "LKR",
+          items: [],
+        };
+      }
+
+      // Add item only if product exists
+      if (row.product_id) {
+        invoicesMap[invoiceNumber].items.push({
+          product_id: row.product_id,
+          product_name: row.product_name,
+          unit: row.unit,
+          quantity: row.quantity,
+          rate: row.rate,
+          amount: row.amount,
+          tax_amount: row.item_tax_amount,
+          tax_group: row.tax_group,
+        });
+      }
+    });
+
+    const finalInvoices = Object.values(invoicesMap);
+
+    res.json(finalInvoices);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      message: "Failed to fetch invoices",
+      error: err.message,
+    });
+  }
+};
+
 exports.getInvoicePDF = async (req, res) => {
   const client_id = "940T0003";
   const { id } = req.params;
@@ -903,6 +1008,70 @@ exports.updateInvoice = async (req, res) => {
 
     return res.status(500).json({
       message: "Database error",
+      error: err.message,
+    });
+  } finally {
+    client.release();
+  }
+};
+
+exports.recordPayment = async (req, res) => {
+  const { paymentsToRecord } = req.body;
+  const client_id = "940T0003";
+
+  if (!Array.isArray(paymentsToRecord) || paymentsToRecord.length === 0) {
+    return res.status(400).json({ error: "Invalid payload" });
+  }
+
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    for (const item of paymentsToRecord) {
+      const { invoice_number, payment_amount } = item;
+
+      if (!invoice_number || !payment_amount || payment_amount <= 0) {
+        throw new Error(`Invalid data for invoice ${invoice_number}`);
+      }
+
+      // 🔥 Single optimized query
+      const result = await client.query(
+        `
+        UPDATE "invoice_header"
+        SET 
+          "Paid_Amount" = "Paid_Amount" + $1,
+          "INV_Posted" = CASE 
+                            WHEN "Paid_Amount" + $1 >= "INV_Amount"
+                            THEN 1
+                            ELSE "INV_Posted"
+                         END
+        WHERE "INV_Code" = $2
+          AND "Client_ID" = $3
+          AND ("Paid_Amount" + $1) <= "INV_Amount"   -- Prevent overpayment
+        RETURNING "INV_Code"
+        `,
+        [payment_amount, invoice_number, client_id],
+      );
+
+      if (result.rowCount === 0) {
+        throw new Error(
+          `Invoice not found or overpayment attempted: ${invoice_number}`,
+        );
+      }
+    }
+
+    await client.query("COMMIT");
+
+    res.status(200).json({
+      success: true,
+      message: "Payments processed successfully",
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Transaction Error:", err.message);
+    res.status(500).json({
+      success: false,
       error: err.message,
     });
   } finally {

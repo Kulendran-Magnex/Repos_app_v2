@@ -124,18 +124,6 @@ export default function AddGRN() {
   const [posted, setPosted] = useState(false);
   const [added, setAdded] = useState(false);
 
-  const [poHeaderData, setPOHeaderData] = useState({
-    PO_Date: today,
-    DeliveryDate: today,
-    PO_Status: "O",
-    Supplier: "",
-    Location: "",
-    TaxGroup: "",
-    Delivery_Address: "",
-    Created_By: "Admin",
-    MR_Code: "",
-  });
-
   const [grnHeadertData, setGRNHeaderData] = useState({
     GRN_Date: today,
     PO_Code: "",
@@ -204,8 +192,8 @@ export default function AddGRN() {
     const recalculateAllTaxes = async () => {
       const updated = await Promise.all(
         productList.map((product) =>
-          calculateTaxForProduct(product, grnHeadertData.TaxGroup)
-        )
+          calculateTaxForProduct(product, grnHeadertData.TaxGroup),
+        ),
       );
       setProductList(updated);
     };
@@ -248,7 +236,7 @@ export default function AddGRN() {
     if (grnHeadertData.Invoice_Date && grnHeadertData.Credit_Period >= 0) {
       const newDueDate = calculatePaymentDueDate(
         grnHeadertData.Invoice_Date,
-        Number(grnHeadertData.Credit_Period)
+        Number(grnHeadertData.Credit_Period),
       );
       setGRNHeaderData((prev) => ({
         ...prev,
@@ -273,7 +261,7 @@ export default function AddGRN() {
         acc.tax += itemTax;
         return acc;
       },
-      { total: 0, tax: 0 }
+      { total: 0, tax: 0 },
     );
 
     setTotalSum(total);
@@ -404,7 +392,7 @@ export default function AddGRN() {
 
     const updatedProduct = await calculateTaxForProduct(
       updatedProducts[index],
-      grnHeadertData.TaxGroup
+      grnHeadertData.TaxGroup,
     );
 
     updatedProducts[index] = updatedProduct;
@@ -427,7 +415,7 @@ export default function AddGRN() {
 
     // Prevent duplicate item by Barcode
     const isDuplicate = productList.some(
-      (item) => item.grnData?.Barcode === grnData.Barcode
+      (item) => item.grnData?.Barcode === grnData.Barcode,
     );
 
     if (isDuplicate) {
@@ -483,7 +471,7 @@ export default function AddGRN() {
 
   const handleRemoveProduct = (barcode) => {
     setProductList((prevList) =>
-      prevList.filter((p) => p.grnData.Barcode !== barcode)
+      prevList.filter((p) => p.grnData.Barcode !== barcode),
     );
   };
 
@@ -702,7 +690,7 @@ export default function AddGRN() {
                   )}
                   value={
                     locationList?.find(
-                      (item) => item.Location_ID === grnHeadertData.Location
+                      (item) => item.Location_ID === grnHeadertData.Location,
                     ) || null
                   }
                   isOptionEqualToValue={(option, value) =>
@@ -736,7 +724,7 @@ export default function AddGRN() {
                 )}
                 value={
                   supplierList.find(
-                    (item) => item.Supplier_Code === grnHeadertData.Supplier
+                    (item) => item.Supplier_Code === grnHeadertData.Supplier,
                   ) || null
                 }
                 isOptionEqualToValue={(option, value) =>
@@ -887,7 +875,7 @@ export default function AddGRN() {
                   )}
                   value={
                     taxGroupList.find(
-                      (item) => item.taxGroupCode === grnHeadertData.TaxGroup
+                      (item) => item.taxGroupCode === grnHeadertData.TaxGroup,
                     ) || null
                   }
                   isOptionEqualToValue={(option, value) =>

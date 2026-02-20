@@ -38,6 +38,7 @@ const transferRoutes = require("./routes/Inventory/transferRoutes");
 const customerRoutes = require("./routes/Inventory/customerRoutes");
 const invoiceRoutes = require("./routes/Sales/invoiceRoutes");
 const salespersonRoutes = require("./routes/Master/salespersonRoutes");
+const recordPaymentRoutes = require("./routes/Sales/recordPaymentRoutes");
 
 app.use("/auth", authRoutes);
 app.use("/", productRoutes);
@@ -60,6 +61,7 @@ app.use("/api", transferRoutes);
 app.use("/api", customerRoutes);
 app.use("/api", invoiceRoutes);
 app.use("/api", salespersonRoutes);
+app.use("/api", recordPaymentRoutes);
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);

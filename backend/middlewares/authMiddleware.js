@@ -21,7 +21,7 @@ const authenticateUser = async (req, res, next) => {
   try {
     const { rows } = await db.query(
       "SELECT current_session FROM users WHERE id = $1",
-      [decoded.user_id]
+      [decoded.user_id],
     );
 
     if (rows.length === 0) {

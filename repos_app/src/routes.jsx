@@ -49,6 +49,7 @@ import EditInvoice from "./components/Sales/Invoice/EditInvoice";
 import RecordPayment from "./components/Sales/Payment/RecordPayment";
 import { element } from "prop-types";
 import { ViewList } from "@mui/icons-material";
+import Test from "./components/Test";
 
 const routes = [
   { path: "/", element: <Homepage /> },
@@ -126,6 +127,7 @@ const routes = [
   { path: "/invoices", element: <InvoiceList /> },
   { path: "/invoice/edit", element: <EditInvoice /> },
   { path: "/payment/record", element: <RecordPayment /> },
+  { path: "/test456", element: <Test /> },
 ];
 
 export default routes;

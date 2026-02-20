@@ -25,7 +25,7 @@ exports.login = async (req, res) => {
       WHERE u.username = $1
       LIMIT 1
       `,
-      [username]
+      [username],
     );
 
     if (result.rowCount === 0) {
@@ -49,13 +49,13 @@ exports.login = async (req, res) => {
         database: user.database,
       },
       SECRET_KEY,
-      { expiresIn: "5h" }
+      { expiresIn: "5h" },
     );
 
     // 4. Save session token
     await db.query(
       `UPDATE "users" SET "current_session" = $1 WHERE "id" = $2`,
-      [token, user.user_id]
+      [token, user.user_id],
     );
 
     // 5. Respond
@@ -88,7 +88,7 @@ exports.logout = async (req, res) => {
     // 2. Clear current session
     const result = await db.query(
       `UPDATE "users" SET "current_session" = NULL WHERE "id" = $1`,
-      [decoded.user_id]
+      [decoded.user_id],
     );
 
     if (result.rowCount === 0) {

@@ -16,7 +16,7 @@ exports.getGRNHeader = async (req, res) => {
       WHERE g."Client_ID" = $1
       ORDER BY g."Creation_Date" DESC
       `,
-      [client_id]
+      [client_id],
     );
 
     if (result.rowCount === 0) {
@@ -44,7 +44,7 @@ exports.getGRNHeaderByID = async (req, res) => {
       WHERE "GRN_Code" = $1
         AND "Client_ID" = $2
       `,
-      [req.params.id, client_id]
+      [req.params.id, client_id],
     );
 
     if (result.rowCount === 0) {
@@ -77,7 +77,7 @@ exports.getGRNHeaderBySupplier = async (req, res) => {
         AND g."GRN_Status" <> 'D'
       ORDER BY g."Creation_Date" DESC
       `,
-      [supplierCode, client_id]
+      [supplierCode, client_id],
     );
 
     if (result.rowCount === 0) {
@@ -105,7 +105,7 @@ exports.getGRNTranByID = async (req, res) => {
       WHERE "GRN_Code" = $1
         AND "Client_ID" = $2
       `,
-      [req.params.id, client_id]
+      [req.params.id, client_id],
     );
 
     if (result.rowCount === 0) {
@@ -125,7 +125,7 @@ exports.getGRNTranByID = async (req, res) => {
 exports.createGRN = async (req, res) => {
   const { grnHeadertData, product_list, total_tax, total_sum } = req.body;
   const client_id = req.user?.client_id;
-  const userID = "01";
+  const userID = req.user?.user_id;
 
   if (!client_id) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -156,7 +156,7 @@ exports.createGRN = async (req, res) => {
       ORDER BY "GRN_Code" DESC
       LIMIT 1
       `,
-      [client_id]
+      [client_id],
     );
 
     let GRN_Code = "GRN0000000001";
@@ -191,7 +191,7 @@ exports.createGRN = async (req, res) => {
         Credit_Period,
         Payment_Due,
         GRN_Type,
-      ]
+      ],
     );
 
     /* ---------- Prepare UNNEST Arrays ---------- */
@@ -243,7 +243,7 @@ exports.createGRN = async (req, res) => {
         $18::numeric[], $19::numeric[], $20::numeric[], $21::date[]
       )
       `,
-      columns
+      columns,
     );
 
     await client.query("COMMIT");
@@ -265,7 +265,7 @@ exports.updateGRN = async (req, res) => {
   const GRN_Code = req.params.id;
   const { grnHeaderData, product_list, total_tax, total_sum } = req.body;
   const client_id = req.user?.client_id;
-  const userID = "01";
+  const userID = req.user?.user_id;
 
   if (!client_id) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -323,13 +323,13 @@ exports.updateGRN = async (req, res) => {
         userID,
         GRN_Code,
         client_id,
-      ]
+      ],
     );
 
     /* ---------- Delete old lines ---------- */
     await client.query(
       `DELETE FROM "grn_tran" WHERE "GRN_Code" = $1 AND "Client_ID" = $2`,
-      [GRN_Code, client_id]
+      [GRN_Code, client_id],
     );
 
     /* ---------- Prepare UNNEST Arrays ---------- */
@@ -378,7 +378,7 @@ exports.updateGRN = async (req, res) => {
         $18::numeric[], $19::numeric[], $20::numeric[], $21::date[]
       )
       `,
-      columns
+      columns,
     );
 
     await client.query("COMMIT");

@@ -5,7 +5,6 @@ import { useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import Cookies from "js-cookie";
 
 const defaultFormFields = {
   username: "",
@@ -59,52 +58,48 @@ const Login = () => {
   //     setLoading(false);
   //   }
   // };
-  
+
   const handleSubmit = async () => {
-  setErrorMessage("");
+    setErrorMessage("");
 
-  if (!username || !password) {
-    setErrorMessage("Username and password are required");
-    return;
-  }
+    if (!username || !password) {
+      setErrorMessage("Username and password are required");
+      return;
+    }
 
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const response = await axios.post(
-      `http://localhost:5000/auth/login`,
-      {
+    try {
+      const response = await axios.post(`http://localhost:5000/auth/login`, {
         username,
         password,
+      });
+
+      const { token, client_id } = response.data;
+
+      if (!token) {
+        throw new Error("Token not received from server");
       }
-    );
 
-    const { token, client_id } = response.data;
+      // the only copy of the token we keep is in context; the provider
+      // itself will persist it to localStorage for us. this prevents the
+      // "two token" confusion you noted.
+      setAuthToken(token);
 
-    if (!token) {
-      throw new Error("Token not received from server");
+      // optionally keep client_id if your UI needs it
+      if (client_id) {
+        localStorage.setItem("client_id", client_id);
+      }
+
+      navigate("/");
+    } catch (error) {
+      setErrorMessage(
+        error.response?.data?.message || "Invalid username or password",
+      );
+    } finally {
+      setLoading(false);
     }
-
-    // ✅ Store token
-    localStorage.setItem("token", token);
-
-    // Optional: store client_id if needed in UI
-    if (client_id) {
-      localStorage.setItem("client_id", client_id);
-    }
-
-    // Optional: context state
-    setAuthToken(token);
-
-    navigate("/");
-  } catch (error) {
-    setErrorMessage(
-      error.response?.data?.message || "Invalid username or password"
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <>

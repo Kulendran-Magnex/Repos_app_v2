@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import axios from "axios";
+import PropTypes from "prop-types";
 import {
   Box,
   Paper,
@@ -13,18 +14,126 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
   CircularProgress,
   Autocomplete,
   FormControl,
   InputLabel,
   Select,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Link,
 } from "@mui/material";
 import toast, { Toaster } from "react-hot-toast";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../Common/PageHeader";
+import { fetchLocationMaster } from "../../API/api";
+
+// memoized row component to prevent re-renders when unrelated props change
+const InvoiceRow = React.memo(
+  ({
+    invoice,
+    due,
+    paymentValue,
+    onPaymentChange,
+    fmt,
+    getLocationName,
+    today,
+    onPayInFull,
+    invoiceError,
+  }) => {
+    return (
+      <TableRow key={invoice.invoice_id}>
+        <TableCell>
+          {invoice.invoice_date
+            ? new Date(invoice.invoice_date).toLocaleDateString("en-GB")
+            : ""}
+        </TableCell>
+        <TableCell>{invoice.invoice_number}</TableCell>
+        <TableCell>{getLocationName(invoice.location_id)}</TableCell>
+        <TableCell align="right">
+          {fmt(Number(invoice.total_amount) || 0)}
+        </TableCell>
+        <TableCell align="right">{fmt(due)}</TableCell>
+        <TableCell align="center">
+          <TextField
+            type="date"
+            size="small"
+            defaultValue={today}
+            inputProps={{ readOnly: true }}
+            sx={{ width: 150 }}
+          />
+        </TableCell>
+        <TableCell align="right">
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: 1,
+            }}
+          >
+            <TextField
+              type="number"
+              size="small"
+              value={paymentValue || ""}
+              onChange={(e) =>
+                onPaymentChange(invoice.invoice_number, e.target.value)
+              }
+              inputProps={{
+                step: "0.01",
+                min: "0",
+                max: due.toFixed(2),
+              }}
+              sx={{ width: 120 }}
+            />
+            {invoiceError && (
+              <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                {invoiceError}
+              </Typography>
+            )}
+            <Link
+              component="button"
+              variant="body2"
+              onClick={(e) => {
+                e.preventDefault();
+                onPayInFull(invoice.invoice_number, due);
+              }}
+              sx={{ cursor: "pointer", textDecoration: "none" }}
+            >
+              Pay in Full
+            </Link>
+          </Box>
+        </TableCell>
+      </TableRow>
+    );
+  },
+);
+
+InvoiceRow.displayName = "InvoiceRow";
+
+InvoiceRow.propTypes = {
+  invoice: PropTypes.shape({
+    invoice_id: PropTypes.number,
+    invoice_date: PropTypes.string,
+    invoice_number: PropTypes.string.isRequired,
+    location_id: PropTypes.number,
+    total_amount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  }).isRequired,
+  due: PropTypes.number.isRequired,
+  paymentValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onPaymentChange: PropTypes.func.isRequired,
+  fmt: PropTypes.func.isRequired,
+  getLocationName: PropTypes.func.isRequired,
+  today: PropTypes.string.isRequired,
+  onPayInFull: PropTypes.func.isRequired,
+  invoiceError: PropTypes.string,
+};
+
+InvoiceRow.displayName = "InvoiceRow";
 
 const RecordPayment = () => {
   const navigate = useNavigate();
@@ -44,9 +153,17 @@ const RecordPayment = () => {
     Payment_Mode: "Cash",
     Deposit_To: "",
     Reference: "",
+    Paid_Amount: 0,
   });
 
   const [invoicePayments, setInvoicePayments] = useState({});
+  const [invoiceErrors, setInvoiceErrors] = useState({});
+  const [openAutoFillDialog, setOpenAutoFillDialog] = useState(false);
+  const [pendingAmount, setPendingAmount] = useState(0);
+  const [lastAmountReceived, setLastAmountReceived] = useState("");
+  const [amountError, setAmountError] = useState("");
+
+  // memoized formatter and lookup functions to prevent new references each render
 
   // Fetch customers
   useEffect(() => {
@@ -54,6 +171,7 @@ const RecordPayment = () => {
       try {
         setLoading(true);
         const res = await axios.get("http://localhost:5000/api/customers");
+        console.log("Customers:", res.data);
         setCustomers(res.data || []);
       } catch (err) {
         console.error("Failed to load customers", err);
@@ -70,8 +188,9 @@ const RecordPayment = () => {
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/locations");
-        setLocations(res.data || []);
+        const res = await fetchLocationMaster();
+        console.log("Locations:", res);
+        setLocations(res || []);
       } catch (err) {
         console.error("Failed to load locations", err);
       }
@@ -82,33 +201,32 @@ const RecordPayment = () => {
 
   // Fetch unpaid invoices for selected customer
   useEffect(() => {
-    if (selectedCustomer?.customer_id) {
-      fetchUnpaidInvoices(selectedCustomer.customer_id);
+    if (selectedCustomer?.Customer_Code) {
+      setLastAmountReceived(""); // Reset tracking when customer changes
+      fetchUnpaidInvoices(selectedCustomer.Customer_Code);
     }
   }, [selectedCustomer]);
 
   const fetchUnpaidInvoices = async (customerId) => {
     try {
+      console.log("customerID", customerId);
       setInvoicesLoading(true);
       const res = await axios.get(
         `http://localhost:5000/api/invoices/unpaid/${customerId}`,
       );
-
+      console.log("Unpaid Invoices:", res.data);
       const unpaid = (res.data || []).filter((invoice) => {
         const total = Number(invoice.total_amount) || 0;
-        const paid = Number(invoice.payment_made) || 0;
+        const paid = Number(invoice.paid_amount) || 0;
         return total > paid;
       });
 
       setUnpaidInvoices(unpaid);
 
-      // Initialize payment amounts
+      // Initialize payment amounts to zero (user will enter via Amount_Received or manually)
       const payments = {};
       unpaid.forEach((invoice) => {
-        const balance =
-          (Number(invoice.total_amount) || 0) -
-          (Number(invoice.payment_made) || 0);
-        payments[invoice.invoice_id] = balance.toFixed(2);
+        payments[invoice.invoice_number] = "0.00";
       });
       setInvoicePayments(payments);
     } catch (err) {
@@ -120,30 +238,150 @@ const RecordPayment = () => {
     }
   };
 
-  const handlePaymentDataChange = (e) => {
-    const { name, value } = e.target;
-    setPaymentData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  console.log("unpaidInvoices", unpaidInvoices);
 
-  const handleInvoicePaymentChange = (invoiceId, value) => {
-    setInvoicePayments((prev) => ({
-      ...prev,
-      [invoiceId]: value,
-    }));
-  };
+  const filteredInvoices = useMemo(() => {
+    return paymentData.Location
+      ? unpaidInvoices.filter((inv) => inv.location_id === paymentData.Location)
+      : unpaidInvoices;
+  }, [paymentData.Location, unpaidInvoices]);
 
-  const handleRecordPayment = async () => {
-    try {
-      if (!selectedCustomer) {
-        toast.error("Please select a customer");
+  // total due across filtered invoices
+  const totalDueAmount = useMemo(() => {
+    return filteredInvoices.reduce((sum, invoice) => {
+      const total = Number(invoice.total_amount) || 0;
+      const paid = Number(invoice.paid_amount) || 0;
+      const due = total - paid;
+      return sum + (due > 0 ? due : 0);
+    }, 0);
+  }, [filteredInvoices]);
+
+  const autoFillPayments = useCallback(
+    (amountReceived) => {
+      if (!amountReceived || Number(amountReceived) <= 0) {
+        setInvoicePayments({});
         return;
       }
 
-      if (!paymentData.Payment_Date || !paymentData.Location) {
-        toast.error("Please fill in Payment Date and Location");
+      let remainingAmount = Number(amountReceived);
+      const newPayments = {};
+
+      // Sort by due amount and distribute payment
+      filteredInvoices.forEach((invoice) => {
+        const total = Number(invoice.total_amount) || 0;
+        const paid = Number(invoice.paid_amount) || 0;
+        const due = total - paid;
+
+        if (remainingAmount > 0 && due > 0) {
+          const paymentAmount = Math.min(remainingAmount, due);
+          newPayments[invoice.invoice_number] = paymentAmount.toFixed(2);
+          remainingAmount -= paymentAmount;
+        } else {
+          newPayments[invoice.invoice_number] = "0.00";
+        }
+      });
+
+      setInvoicePayments(newPayments);
+    },
+    [filteredInvoices],
+  );
+
+  const handlePaymentDataChange = useCallback(
+    (e) => {
+      const { name, value } = e.target;
+
+      // Validate Amount_Received: cannot exceed total due
+      if (name === "Amount_Received") {
+        const numeric = value === "" ? "" : Number(value);
+        if (numeric !== "" && Number(numeric) > Number(totalDueAmount)) {
+          const formatted = Number(totalDueAmount || 0).toLocaleString(
+            "en-US",
+            {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            },
+          );
+          setAmountError(
+            `Amount Received cannot exceed total due (${formatted})`,
+          );
+          // cap the value to totalDueAmount
+          setPaymentData((prev) => ({
+            ...prev,
+            [name]: totalDueAmount.toFixed(2),
+          }));
+          return;
+        } else {
+          setAmountError("");
+        }
+      }
+
+      setPaymentData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    },
+    [totalDueAmount],
+  );
+
+  const handleAmountReceivedBlur = useCallback(() => {
+    // Trigger dialog only when user finishes entering amount (on blur/pointer out)
+    const amount = Number(paymentData.Amount_Received);
+    if (amount > 0 && !lastAmountReceived && selectedCustomer) {
+      setPendingAmount(amount);
+      setOpenAutoFillDialog(true);
+      setLastAmountReceived(paymentData.Amount_Received);
+    }
+  }, [paymentData.Amount_Received, lastAmountReceived, selectedCustomer]);
+
+  const handleInvoicePaymentChange = useCallback(
+    (invoiceId, value) => {
+      const invoice = filteredInvoices.find(
+        (inv) => inv.invoice_number === invoiceId,
+      );
+      const total = Number(invoice?.total_amount) || 0;
+      const paid = Number(invoice?.paid_amount) || 0;
+      const due = total - paid;
+
+      const numeric = value === "" ? "" : Number(value);
+      if (numeric !== "" && Number(numeric) > due) {
+        // cap to due and set error
+        setInvoicePayments((prev) => ({
+          ...prev,
+          [invoiceId]: due.toFixed(2),
+        }));
+        const formattedDue = Number(due || 0).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+        setInvoiceErrors((prev) => ({
+          ...prev,
+          [invoiceId]: `Amount cannot exceed due (${formattedDue})`,
+        }));
+        return;
+      }
+
+      // clear error and set value
+      setInvoiceErrors((prev) => ({ ...prev, [invoiceId]: "" }));
+      setInvoicePayments((prev) => ({
+        ...prev,
+        [invoiceId]: value,
+      }));
+    },
+    [filteredInvoices],
+  );
+
+  const handlePayInFull = useCallback((invoiceNumber, dueAmount) => {
+    setInvoicePayments((prev) => ({
+      ...prev,
+      [invoiceNumber]: dueAmount.toFixed(2),
+    }));
+    setInvoiceErrors((prev) => ({ ...prev, [invoiceNumber]: "" }));
+  }, []);
+
+  const handleRecordPayment = useCallback(async () => {
+    try {
+      if (!selectedCustomer) {
+        toast.error("Please select a customer");
         return;
       }
 
@@ -156,35 +394,28 @@ const RecordPayment = () => {
         return;
       }
 
+      console.log("Invoice Paymrnt", invoicePayments);
       // Filter invoices with payments
       const paymentsToRecord = Object.entries(invoicePayments)
-        .filter(([_, amount]) => Number(amount) > 0)
+        .filter(([invoiceId]) => Number(invoicePayments[invoiceId]) > 0)
         .map(([invoiceId, amount]) => ({
-          invoice_id: invoiceId,
+          invoice_number: invoiceId,
           payment_amount: Number(amount),
         }));
 
       const payload = {
-        customer_id: selectedCustomer.customer_id,
-        payment_date: paymentData.Payment_Date,
-        location: paymentData.Location,
-        amount_received: Number(paymentData.Amount_Received) || 0,
-        bank_charges: Number(paymentData.Bank_Charges) || 0,
-        payment_mode: paymentData.Payment_Mode,
-        deposit_to: paymentData.Deposit_To,
-        reference: paymentData.Reference,
-        payments: paymentsToRecord,
+        paymentsToRecord,
+        paymentData,
       };
 
-      const res = await axios.post(
-        "http://localhost:5000/api/payments/record",
-        payload,
-      );
+      console.log("Payload:", payload);
 
-      toast.success("Payment recorded successfully");
+      // await axios.put("http://localhost:5000/api/recordPayment", payload);
 
-      // Refresh invoices
-      await fetchUnpaidInvoices(selectedCustomer.customer_id);
+      // toast.success("Payment recorded successfully");
+
+      // // Refresh invoices
+      // await fetchUnpaidInvoices(selectedCustomer.Customer_Code);
 
       // Reset payment data
       setPaymentData({
@@ -196,17 +427,36 @@ const RecordPayment = () => {
         Deposit_To: "",
         Reference: "",
       });
+
+      setInvoicePayments({});
+      setLastAmountReceived("");
+      setSelectedCustomer(null);
     } catch (err) {
       console.error("Failed to record payment", err);
       toast.error(err.response?.data?.message || "Failed to record payment");
     }
-  };
+  }, [selectedCustomer, invoicePayments, today]);
 
-  const fmt = (n) =>
-    Number(n || 0).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+  const fmt = useCallback(
+    (n) =>
+      Number(n || 0).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    [],
+  );
+
+  const getLocationName = useCallback(
+    (locationId) => {
+      const location = locations.find((loc) => loc.Location_ID === locationId);
+      return location ? location.Location_Name : locationId;
+    },
+    [locations],
+  );
+
+  const hasValidationError =
+    Boolean(amountError) ||
+    Object.values(invoiceErrors || {}).some((v) => Boolean(v && v.length));
 
   return (
     <>
@@ -245,7 +495,7 @@ const RecordPayment = () => {
             {/* Customer Selection */}
             <Autocomplete
               options={customers}
-              getOptionLabel={(option) => option.customer_name || ""}
+              getOptionLabel={(option) => option.Customer_Name || ""}
               onChange={(event, newValue) => {
                 setSelectedCustomer(newValue);
               }}
@@ -257,30 +507,51 @@ const RecordPayment = () => {
             />
 
             {/* Location */}
-            <FormControl>
-              <InputLabel>Location</InputLabel>
-              <Select
-                name="Location"
-                value={paymentData.Location}
-                onChange={handlePaymentDataChange}
-                label="Location"
-              >
-                {locations.map((loc) => (
-                  <MenuItem key={loc.location_id} value={loc.location_id}>
-                    {loc.location_name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Autocomplete
+              options={locations}
+              getOptionLabel={(option) => option.Location_Name || ""}
+              value={
+                locations.find(
+                  (loc) => loc.Location_ID === paymentData.Location,
+                ) || null
+              }
+              onChange={(event, newValue) => {
+                setPaymentData((prev) => ({
+                  ...prev,
+                  Location: newValue ? newValue.Location_ID : "",
+                }));
+              }}
+              renderInput={(params) => (
+                <TextField {...params} label="Location" />
+              )}
+            />
 
-            {/* Amount Received */}
+            {/* Amount Received
             <TextField
               label="Amount Received"
               name="Amount_Received"
               type="number"
               value={paymentData.Amount_Received}
               onChange={handlePaymentDataChange}
+              onBlur={handleAmountReceivedBlur}
               inputProps={{ step: "0.01", min: "0" }}
+            />
+            {amountError && (
+              <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                {amountError}
+              </Typography>
+            )} */}
+
+            <TextField
+              label="Amount Received"
+              name="Amount_Received"
+              type="number"
+              value={paymentData.Amount_Received}
+              onChange={handlePaymentDataChange}
+              onBlur={handleAmountReceivedBlur}
+              inputProps={{ step: "0.01", min: "0" }}
+              error={Boolean(amountError)}
+              helperText={amountError}
             />
 
             {/* Bank Charges */}
@@ -349,7 +620,7 @@ const RecordPayment = () => {
               <Box display="flex" justifyContent="center" p={3}>
                 <CircularProgress />
               </Box>
-            ) : unpaidInvoices.length === 0 ? (
+            ) : filteredInvoices.length === 0 ? (
               <Typography color="textSecondary" align="center" sx={{ py: 3 }}>
                 No unpaid invoices found for this customer
               </Typography>
@@ -394,53 +665,23 @@ const RecordPayment = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {unpaidInvoices.map((invoice) => {
+                    {filteredInvoices.map((invoice) => {
                       const total = Number(invoice.total_amount) || 0;
-                      const paid = Number(invoice.payment_made) || 0;
+                      const paid = Number(invoice.paid_amount) || 0;
                       const due = total - paid;
-
                       return (
-                        <TableRow key={invoice.invoice_id}>
-                          <TableCell>
-                            {invoice.invoice_date
-                              ? new Date(
-                                  invoice.invoice_date,
-                                ).toLocaleDateString("en-GB")
-                              : ""}
-                          </TableCell>
-                          <TableCell>{invoice.invoice_number}</TableCell>
-                          <TableCell>{invoice.location_name}</TableCell>
-                          <TableCell align="right">{fmt(total)}</TableCell>
-                          <TableCell align="right">{fmt(due)}</TableCell>
-                          <TableCell align="center">
-                            <TextField
-                              type="date"
-                              size="small"
-                              defaultValue={today}
-                              inputProps={{ readOnly: true }}
-                              sx={{ width: 150 }}
-                            />
-                          </TableCell>
-                          <TableCell align="right">
-                            <TextField
-                              type="number"
-                              size="small"
-                              value={invoicePayments[invoice.invoice_id] || ""}
-                              onChange={(e) =>
-                                handleInvoicePaymentChange(
-                                  invoice.invoice_id,
-                                  e.target.value,
-                                )
-                              }
-                              inputProps={{
-                                step: "0.01",
-                                min: "0",
-                                max: due.toFixed(2),
-                              }}
-                              sx={{ width: 120 }}
-                            />
-                          </TableCell>
-                        </TableRow>
+                        <InvoiceRow
+                          key={invoice.invoice_id}
+                          invoice={invoice}
+                          due={due}
+                          paymentValue={invoicePayments[invoice.invoice_number]}
+                          onPaymentChange={handleInvoicePaymentChange}
+                          fmt={fmt}
+                          getLocationName={getLocationName}
+                          today={today}
+                          onPayInFull={handlePayInFull}
+                          invoiceError={invoiceErrors[invoice.invoice_number]}
+                        />
                       );
                     })}
                   </TableBody>
@@ -449,7 +690,7 @@ const RecordPayment = () => {
             )}
 
             {/* Total Summary */}
-            {unpaidInvoices.length > 0 && (
+            {filteredInvoices.length > 0 && (
               <Box sx={{ mt: 3, textAlign: "right" }}>
                 <Typography variant="body1" sx={{ fontWeight: "bold", mb: 2 }}>
                   Total Payment:{" "}
@@ -465,8 +706,48 @@ const RecordPayment = () => {
           </Paper>
         )}
 
+        {/* Auto-Fill Dialog */}
+        <Dialog
+          open={openAutoFillDialog}
+          onClose={() => setOpenAutoFillDialog(false)}
+        >
+          <DialogTitle>Auto-Fill Payment Amounts</DialogTitle>
+          <DialogContent sx={{ mt: 2 }}>
+            <Typography>
+              Would you like this amount ({fmt(pendingAmount)}) to be reflected
+              in the Payment field?
+            </Typography>
+            <Typography
+              variant="caption"
+              color="textSecondary"
+              sx={{ mt: 1, display: "block" }}
+            >
+              The amount will be distributed across unpaid invoices in order.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => {
+                setOpenAutoFillDialog(false);
+                // Don't fill, just close
+              }}
+            >
+              No
+            </Button>
+            <Button
+              onClick={() => {
+                autoFillPayments(pendingAmount);
+                setOpenAutoFillDialog(false);
+              }}
+              variant="contained"
+            >
+              Yes
+            </Button>
+          </DialogActions>
+        </Dialog>
+
         {/* Action Buttons */}
-        {selectedCustomer && unpaidInvoices.length > 0 && (
+        {selectedCustomer && filteredInvoices.length > 0 && (
           <Box display="flex" gap={2} sx={{ mt: 3, justifyContent: "center" }}>
             <Button variant="outlined" onClick={() => navigate("/invoices")}>
               Cancel
@@ -475,6 +756,7 @@ const RecordPayment = () => {
               variant="contained"
               startIcon={<SaveIcon />}
               onClick={handleRecordPayment}
+              disabled={hasValidationError}
             >
               Save as Paid
             </Button>
