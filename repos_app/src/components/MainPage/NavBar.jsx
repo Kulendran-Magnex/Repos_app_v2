@@ -33,7 +33,10 @@ import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import AssessmentIcon from "@mui/icons-material/Assessment";
-
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import PeopleIcon from "@mui/icons-material/People";
+import ReceiptIcon from "@mui/icons-material/Receipt";
+import BuildIcon from "@mui/icons-material/Build";
 
 // Updated master menus with new route structure
 const masterMenus = [
@@ -71,20 +74,31 @@ const purchaseMenus = [
 ];
 
 const inventoryMenus = [
-  { to: "/adjustment/view", icon: <AssignmentIcon />, label: "Adjustment" },
-  { to: "/transfer/view", icon: <AssignmentIcon />, label: "Transfer" },
+  { to: "/adjustment/view", icon: <BuildIcon />, label: "Adjustment" },
+  { to: "/transfer/view", icon: <SwapHorizIcon />, label: "Transfer" },
 ];
 
 const salesMenus = [
-  { to: "/customers", icon: <AssignmentIcon /> , label: "Customer"},
-   { to: "/invoice/view", icon: <AssignmentIcon /> , label: "Invoice"}
-]
+  { to: "/customers", icon: <PeopleIcon />, label: "Customer" },
+  { to: "/invoice/view", icon: <ReceiptIcon />, label: "Invoice" },
+  { to: "/payment/record", icon: <CreditCardIcon />, label: "Payment" },
+];
+
+const reportMenus = [
+  { to: "/sales-summary", icon: <AssessmentIcon />, label: "Sales Summary" },
+  {
+    to: "/inventory-report",
+    icon: <InventoryIcon />,
+    label: "Inventory Report",
+  },
+];
 
 const NavBar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [purchaseList, setPurchaseList] = useState(null);
   const [inventoryList, setInventoryList] = useState(null);
   const [salesList, setSalesList] = useState(null);
+  const [reportList, setReportList] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerSubMenu, setDrawerSubMenu] = useState(null); // "master" or "purchase"
   const [userMenu, setUserMenu] = useState(null);
@@ -104,6 +118,8 @@ const NavBar = () => {
   const handlePurchaseClose = () => setPurchaseList(null);
   const handleUserClick = (event) => setUserMenu(event.currentTarget);
   const handleUserClose = () => setUserMenu(null);
+  const handleReportsClick = (event) => setReportList(event.currentTarget);
+  const handleReportsClose = () => setReportList(null);
   const handleLogout = () => {
     if (setAuthToken) setAuthToken(null);
     navigate("/login");
@@ -112,38 +128,38 @@ const NavBar = () => {
 
   // Highlight if any master menu is active
   const isMasterActive = masterMenus.some((menu) =>
-    location.pathname.startsWith(menu.to)
+    location.pathname.startsWith(menu.to),
   );
   // Highlight if any purchase menu or its add/edit subroutes are active
   const isPurchaseActive =
     purchaseMenus.some((menu) =>
-      location.pathname.startsWith(menu.to.replace("/view", "/add"))
+      location.pathname.startsWith(menu.to.replace("/view", "/add")),
     ) ||
     purchaseMenus.some((menu) =>
-      location.pathname.startsWith(menu.to.replace("/view", "/edit"))
+      location.pathname.startsWith(menu.to.replace("/view", "/edit")),
     ) ||
     purchaseMenus.some((menu) => location.pathname.startsWith(menu.to));
 
   const isInventoryActive = inventoryMenus.some(
     (menu) =>
       inventoryMenus.some((menu) =>
-        location.pathname.startsWith(menu.to.replace("/view", "/add"))
+        location.pathname.startsWith(menu.to.replace("/view", "/add")),
       ) ||
       inventoryMenus.some((menu) =>
-        location.pathname.startsWith(menu.to.replace("/view", "/edit"))
+        location.pathname.startsWith(menu.to.replace("/view", "/edit")),
       ) ||
-      location.pathname.startsWith(menu.to)
+      location.pathname.startsWith(menu.to),
   );
 
-    const isSalesActive = salesMenus.some(
+  const isSalesActive = salesMenus.some(
     (menu) =>
       salesMenus.some((menu) =>
-        location.pathname.startsWith(menu.to.replace("/view", "/add"))
+        location.pathname.startsWith(menu.to.replace("/view", "/add")),
       ) ||
       salesMenus.some((menu) =>
-        location.pathname.startsWith(menu.to.replace("/view", "/edit"))
+        location.pathname.startsWith(menu.to.replace("/view", "/edit")),
       ) ||
-      location.pathname.startsWith(menu.to)
+      location.pathname.startsWith(menu.to),
   );
 
   // Helper to render menu items for dropdowns
@@ -264,10 +280,10 @@ const NavBar = () => {
               to={menu.to}
               selected={
                 location.pathname.startsWith(
-                  menu.to.replace("/view", "/add")
+                  menu.to.replace("/view", "/add"),
                 ) ||
                 location.pathname.startsWith(
-                  menu.to.replace("/view", "/edit")
+                  menu.to.replace("/view", "/edit"),
                 ) ||
                 location.pathname.startsWith(menu.to)
               }
@@ -278,6 +294,30 @@ const NavBar = () => {
             </ListItem>
           ))}
         <Divider />
+
+        <ListItem button onClick={handleReportsClick}>
+          <ListItemIcon>
+            <AssessmentIcon />
+          </ListItemIcon>
+          <ListItemText primary="Reports" />
+        </ListItem>
+        <Menu
+          anchorEl={reportList}
+          open={Boolean(reportList)}
+          onClose={handleReportsClose}
+        >
+          {reportMenus.map((menu) => (
+            <MenuItem
+              key={menu.to}
+              component={Link}
+              to={menu.to}
+              selected={location.pathname === menu.to}
+            >
+              {menu.icon}
+              <Box sx={{ ml: 1 }}>{menu.label}</Box>
+            </MenuItem>
+          ))}
+        </Menu>
         <ListItem
           button
           component={Link}
@@ -369,10 +409,10 @@ const NavBar = () => {
               to={menu.to}
               selected={
                 location.pathname.startsWith(
-                  menu.to.replace("/view", "/add")
+                  menu.to.replace("/view", "/add"),
                 ) ||
                 location.pathname.startsWith(
-                  menu.to.replace("/view", "/edit")
+                  menu.to.replace("/view", "/edit"),
                 ) ||
                 location.pathname.startsWith(menu.to)
               }
@@ -397,8 +437,6 @@ const NavBar = () => {
       </List>
     </Box>
   );
-
-  
 
   return (
     <AppBar
@@ -439,10 +477,21 @@ const NavBar = () => {
               <Typography sx={{ fontWeight: "bold" }}>Repos App</Typography>
             </Box>
 
-            <Box sx={{ position: 'absolute', right: 8, top: 12 }}>
+            <Box sx={{ position: "absolute", right: 8, top: 12 }}>
               <Tooltip title="Account">
-                <IconButton onClick={handleUserClick} size="small" sx={{ ml: 1 }}>
-                  <Avatar sx={{ width: 36, height: 36, bgcolor: 'white', color: '#1976d2' }}>
+                <IconButton
+                  onClick={handleUserClick}
+                  size="small"
+                  sx={{ ml: 1 }}
+                >
+                  <Avatar
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      bgcolor: "white",
+                      color: "#1976d2",
+                    }}
+                  >
                     <AccountCircleIcon />
                   </Avatar>
                 </IconButton>
@@ -451,217 +500,240 @@ const NavBar = () => {
                 anchorEl={userMenu}
                 open={Boolean(userMenu)}
                 onClose={handleUserClose}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
               >
-                <MenuItem component={Link} to="/profile" onClick={handleUserClose}>Profile</MenuItem>
+                <MenuItem
+                  component={Link}
+                  to="/profile"
+                  onClick={handleUserClose}
+                >
+                  Profile
+                </MenuItem>
                 <MenuItem onClick={handleLogout}>Logout</MenuItem>
               </Menu>
             </Box>
           </>
         ) : (
           <>
-
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-            }}
-          >
-            {/* Home Button */}
-            <Button
-              component={Link}
-              to="/home"
-              startIcon={<HomeIcon />}
+            <Box
               sx={{
-                color: location.pathname === "/home" ? "#fff" : "#e3f2fd",
-                fontWeight: "bold",
-                borderBottom:
-                  location.pathname === "/home"
+                display: "flex",
+                gap: 2,
+              }}
+            >
+              {/* Home Button */}
+              <Button
+                component={Link}
+                to="/home"
+                startIcon={<HomeIcon />}
+                sx={{
+                  color: location.pathname === "/home" ? "#fff" : "#e3f2fd",
+                  fontWeight: "bold",
+                  borderBottom:
+                    location.pathname === "/home"
+                      ? "3px solid #fff"
+                      : "3px solid transparent",
+                  borderRadius: 0,
+                  mx: 1,
+                  transition: "all 0.2s",
+                  "&:hover": {
+                    background: "rgba(255,255,255,0.08)",
+                    color: "#fff",
+                    borderBottom: "3px solid #fff",
+                  },
+                }}
+              >
+                Dashboard
+              </Button>
+
+              {/* Master Button */}
+              <Button
+                onClick={handleMenuClick}
+                endIcon={<ArrowDropDownIcon />}
+                startIcon={<MenuBookIcon />}
+                sx={{
+                  color: isMasterActive ? "#fff" : "#e3f2fd",
+                  fontWeight: "bold",
+                  borderBottom: isMasterActive
                     ? "3px solid #fff"
                     : "3px solid transparent",
-                borderRadius: 0,
-                mx: 1,
-                transition: "all 0.2s",
-                "&:hover": {
-                  background: "rgba(255,255,255,0.08)",
-                  color: "#fff",
-                  borderBottom: "3px solid #fff",
-                },
-              }}
-            >
-              Dashboard
-            </Button>
+                  borderRadius: 0,
+                  mx: 1,
+                  transition: "all 0.2s",
+                  "&:hover": {
+                    background: "rgba(255,255,255,0.08)",
+                    color: "#fff",
+                    borderBottom: "3px solid #fff",
+                  },
+                }}
+              >
+                Master
+              </Button>
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleMenuClose}
+              >
+                {renderMenuItems(masterMenus, handleMenuClose)}
+              </Menu>
 
-            {/* Master Button */}
-            <Button
-              onClick={handleMenuClick}
-              endIcon={<ArrowDropDownIcon />}
-              startIcon={<MenuBookIcon />}
-              sx={{
-                color: isMasterActive ? "#fff" : "#e3f2fd",
-                fontWeight: "bold",
-                borderBottom: isMasterActive
-                  ? "3px solid #fff"
-                  : "3px solid transparent",
-                borderRadius: 0,
-                mx: 1,
-                transition: "all 0.2s",
-                "&:hover": {
-                  background: "rgba(255,255,255,0.08)",
-                  color: "#fff",
-                  borderBottom: "3px solid #fff",
-                },
-              }}
-            >
-              Master
-            </Button>
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleMenuClose}
-            >
-              {renderMenuItems(masterMenus, handleMenuClose)}
-            </Menu>
-
-            {/* Purchase Button */}
-            <Button
-              onClick={handlePurchaseClick}
-              endIcon={<ArrowDropDownIcon />}
-              startIcon={<ShoppingCartIcon />}
-              sx={{
-                color: isPurchaseActive ? "#fff" : "#e3f2fd",
-                fontWeight: "bold",
-                borderBottom: isPurchaseActive
-                  ? "3px solid #fff"
-                  : "3px solid transparent",
-                borderRadius: 0,
-                mx: 1,
-                transition: "all 0.2s",
-                "&:hover": {
-                  background: "rgba(255,255,255,0.08)",
-                  color: "#fff",
-                  borderBottom: "3px solid #fff",
-                },
-              }}
-            >
-              Purchase
-            </Button>
-            <Menu
-              anchorEl={purchaseList}
-              open={Boolean(purchaseList)}
-              onClose={handlePurchaseClose}
-            >
-              {renderMenuItems(purchaseMenus, handlePurchaseClose)}
-            </Menu>
-
-            {/* Reports Button */}
-
-            <Button
-              onClick={handleInventoryClick}
-              endIcon={<ArrowDropDownIcon />}
-              startIcon={<MenuBookIcon />}
-              sx={{
-                color: isInventoryActive ? "#fff" : "#e3f2fd",
-                fontWeight: "bold",
-                borderBottom: isInventoryActive
-                  ? "3px solid #fff"
-                  : "3px solid transparent",
-                borderRadius: 0,
-                mx: 1,
-                transition: "all 0.2s",
-                "&:hover": {
-                  background: "rgba(255,255,255,0.08)",
-                  color: "#fff",
-                  borderBottom: "3px solid #fff",
-                },
-              }}
-            >
-              Inventory
-            </Button>
-            <Menu
-              anchorEl={inventoryList}
-              open={Boolean(inventoryList)}
-              onClose={handleInventoryClose}
-            >
-              {renderMenuItems(inventoryMenus, handleInventoryClose)}
-            </Menu>
-
-            <Button
-              onClick={handleSalesClick}
-              endIcon={<ArrowDropDownIcon />}
-              startIcon={<MenuBookIcon />}
-              sx={{
-                color: isSalesActive ? "#fff" : "#e3f2fd",
-                fontWeight: "bold",
-                borderBottom: isSalesActive
-                  ? "3px solid #fff"
-                  : "3px solid transparent",
-                borderRadius: 0,
-                mx: 1,
-                transition: "all 0.2s",
-                "&:hover": {
-                  background: "rgba(255,255,255,0.08)",
-                  color: "#fff",
-                  borderBottom: "3px solid #fff",
-                },
-              }}
-            >
-              Sales
-            </Button>
-            <Menu
-              anchorEl={salesList}
-              open={Boolean(salesList)}
-              onClose={handleSalesClose}
-            >
-              {renderMenuItems(salesMenus, handleSalesClose)}
-            </Menu>
-
-            <Button
-              component={Link}
-              to="/contact-us"
-              startIcon={<AssessmentIcon />}
-              sx={{
-                color: location.pathname === "/contact-us" ? "#fff" : "#e3f2fd",
-                fontWeight: "bold",
-                borderBottom:
-                  location.pathname === "/contact-us"
+              {/* Purchase Button */}
+              <Button
+                onClick={handlePurchaseClick}
+                endIcon={<ArrowDropDownIcon />}
+                startIcon={<ShoppingCartIcon />}
+                sx={{
+                  color: isPurchaseActive ? "#fff" : "#e3f2fd",
+                  fontWeight: "bold",
+                  borderBottom: isPurchaseActive
                     ? "3px solid #fff"
                     : "3px solid transparent",
-                borderRadius: 0,
-                mx: 1,
-                transition: "all 0.2s",
-                "&:hover": {
-                  background: "rgba(255,255,255,0.08)",
-                  color: "#fff",
-                  borderBottom: "3px solid #fff",
-                },
-              }}
-            >
-              Reports
-            </Button>
-          </Box>
+                  borderRadius: 0,
+                  mx: 1,
+                  transition: "all 0.2s",
+                  "&:hover": {
+                    background: "rgba(255,255,255,0.08)",
+                    color: "#fff",
+                    borderBottom: "3px solid #fff",
+                  },
+                }}
+              >
+                Purchase
+              </Button>
+              <Menu
+                anchorEl={purchaseList}
+                open={Boolean(purchaseList)}
+                onClose={handlePurchaseClose}
+              >
+                {renderMenuItems(purchaseMenus, handlePurchaseClose)}
+              </Menu>
 
-          <Box sx={{ flexGrow: 1 }} />
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Tooltip title="Account">
-              <IconButton onClick={handleUserClick} size="small" sx={{ ml: 1 }}>
-                <Avatar sx={{ width: 36, height: 36, bgcolor: 'white', color: '#1976d2' }}>
-                  <AccountCircleIcon />
-                </Avatar>
-              </IconButton>
-            </Tooltip>
-            <Menu
-              anchorEl={userMenu}
-              open={Boolean(userMenu)}
-              onClose={handleUserClose}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-            >
-              <MenuItem component={Link} to="/profile" onClick={handleUserClose}>Profile</MenuItem>
-              <MenuItem onClick={handleLogout}>Logout</MenuItem>
-            </Menu>
-          </Box>
+              {/* Reports Button */}
+
+              <Button
+                onClick={handleInventoryClick}
+                endIcon={<ArrowDropDownIcon />}
+                startIcon={<MenuBookIcon />}
+                sx={{
+                  color: isInventoryActive ? "#fff" : "#e3f2fd",
+                  fontWeight: "bold",
+                  borderBottom: isInventoryActive
+                    ? "3px solid #fff"
+                    : "3px solid transparent",
+                  borderRadius: 0,
+                  mx: 1,
+                  transition: "all 0.2s",
+                  "&:hover": {
+                    background: "rgba(255,255,255,0.08)",
+                    color: "#fff",
+                    borderBottom: "3px solid #fff",
+                  },
+                }}
+              >
+                Inventory
+              </Button>
+              <Menu
+                anchorEl={inventoryList}
+                open={Boolean(inventoryList)}
+                onClose={handleInventoryClose}
+              >
+                {renderMenuItems(inventoryMenus, handleInventoryClose)}
+              </Menu>
+
+              <Button
+                onClick={handleSalesClick}
+                endIcon={<ArrowDropDownIcon />}
+                startIcon={<MenuBookIcon />}
+                sx={{
+                  color: isSalesActive ? "#fff" : "#e3f2fd",
+                  fontWeight: "bold",
+                  borderBottom: isSalesActive
+                    ? "3px solid #fff"
+                    : "3px solid transparent",
+                  borderRadius: 0,
+                  mx: 1,
+                  transition: "all 0.2s",
+                  "&:hover": {
+                    background: "rgba(255,255,255,0.08)",
+                    color: "#fff",
+                    borderBottom: "3px solid #fff",
+                  },
+                }}
+              >
+                Sales
+              </Button>
+              <Menu
+                anchorEl={salesList}
+                open={Boolean(salesList)}
+                onClose={handleSalesClose}
+              >
+                {renderMenuItems(salesMenus, handleSalesClose)}
+              </Menu>
+
+              <Button
+                onClick={handleReportsClick}
+                endIcon={<ArrowDropDownIcon />}
+                startIcon={<MenuBookIcon />}
+                sx={{
+                  color:
+                    location.pathname === "/contact-us" ? "#fff" : "#e3f2fd",
+                  fontWeight: "bold",
+                  borderBottom:
+                    location.pathname === "/contact-us"
+                      ? "3px solid #fff"
+                      : "3px solid transparent",
+                  borderRadius: 0,
+                  mx: 1,
+                  transition: "all 0.2s",
+                  "&:hover": {
+                    background: "rgba(255,255,255,0.08)",
+                    color: "#fff",
+                    borderBottom: "3px solid #fff",
+                  },
+                }}
+              >
+                Reports
+              </Button>
+            </Box>
+
+            <Box sx={{ flexGrow: 1 }} />
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Tooltip title="Account">
+                <IconButton
+                  onClick={handleUserClick}
+                  size="small"
+                  sx={{ ml: 1 }}
+                >
+                  <Avatar
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      bgcolor: "white",
+                      color: "#1976d2",
+                    }}
+                  >
+                    <AccountCircleIcon />
+                  </Avatar>
+                </IconButton>
+              </Tooltip>
+              <Menu
+                anchorEl={userMenu}
+                open={Boolean(userMenu)}
+                onClose={handleUserClose}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
+              >
+                <MenuItem
+                  component={Link}
+                  to="/profile"
+                  onClick={handleUserClose}
+                >
+                  Profile
+                </MenuItem>
+                <MenuItem onClick={handleLogout}>Logout</MenuItem>
+              </Menu>
+            </Box>
           </>
         )}
       </Toolbar>

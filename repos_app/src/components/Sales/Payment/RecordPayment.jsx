@@ -378,47 +378,141 @@ const RecordPayment = () => {
     setInvoiceErrors((prev) => ({ ...prev, [invoiceNumber]: "" }));
   }, []);
 
+  // const handleRecordPayment = useCallback(async () => {
+  //   try {
+  //     if (!selectedCustomer) {
+  //       toast.error("Please select a customer");
+  //       return;
+  //     }
+
+  //     const hasPayments = Object.values(invoicePayments).some(
+  //       (amount) => Number(amount) > 0,
+  //     );
+
+  //     if (!hasPayments) {
+  //       toast.error("Please enter payment amount for at least one invoice");
+  //       return;
+  //     }
+
+  //     console.log("Invoice Paymrnt", invoicePayments);
+
+  //     const paymentsToRecord = filteredInvoices
+  //       .filter(
+  //         (invoice) => Number(invoicePayments[invoice.invoice_number]) > 0,
+  //       )
+  //       .flatMap((invoice) => ({
+  //         // invoice-level fields added inside item
+  //         invoice_number: invoice.invoice_number,
+  //         currency: invoice.currency,
+  //         customer_code: invoice.customer_code,
+  //         customer_name: invoice.customer_name,
+  //         invoice_date: invoice.invoice_date,
+  //         invoice_status: invoice.invoice_status,
+  //         location_id: invoice.location_id,
+  //         paid_amount: invoice.paid_amount,
+  //         po_date: invoice.po_date,
+  //         po_order: invoice.po_order,
+  //         invoice_tax_amount: invoice.tax_amount,
+  //         total_amount: invoice.total_amount,
+  //         payment_date: paymentData.Payment_Date,
+  //         reference: paymentData.Reference,
+  //         payment_mode: paymentData.Payment_Mode,
+
+  //         // new payment
+  //         payment_amount: Number(invoicePayments[invoice.invoice_number]),
+  //       }));
+
+  //     const payload = {
+  //       paymentsToRecord,
+  //       paymentData,
+  //     };
+
+  //     console.log("Payload:", payload);
+
+  //     await axios.post("http://localhost:5000/api/recordPayment", payload);
+  //     await axios.put("http://localhost:5000/api/recordPayment", payload);
+
+  //     toast.success("Payment recorded successfully");
+
+  //     // Refresh invoices
+  //     await fetchUnpaidInvoices(selectedCustomer.Customer_Code);
+
+  //     // // Reset payment data
+  //     setPaymentData({
+  //       Payment_Date: today,
+  //       Location: "",
+  //       Amount_Received: "",
+  //       Bank_Charges: "",
+  //       Payment_Mode: "Cash",
+  //       Deposit_To: "",
+  //       Reference: "",
+  //     });
+
+  //     setInvoicePayments({});
+  //     setLastAmountReceived("");
+  //     setSelectedCustomer(null);
+  //   } catch (err) {
+  //     console.error("Failed to record payment", err);
+  //     toast.error(err.response?.data?.message || "Failed to record payment");
+  //   }
+  // }, [selectedCustomer, invoicePayments, today]);
+
   const handleRecordPayment = useCallback(async () => {
+    if (!selectedCustomer) {
+      toast.error("Please select a customer");
+      return;
+    }
+
     try {
-      if (!selectedCustomer) {
-        toast.error("Please select a customer");
-        return;
+      // 🔹 Build payments in ONE loop
+      const paymentsToRecord = [];
+
+      for (const invoice of filteredInvoices) {
+        const amount = Number(invoicePayments[invoice.invoice_number]);
+
+        if (amount > 0) {
+          paymentsToRecord.push({
+            invoice_number: invoice.invoice_number,
+            payment_amount: amount,
+            invoice_tax_amount: invoice.tax_amount,
+            total_amount: invoice.total_amount,
+            paid_amount: invoice.paid_amount,
+            location_id: invoice.location_id,
+          });
+        }
       }
 
-      const hasPayments = Object.values(invoicePayments).some(
-        (amount) => Number(amount) > 0,
-      );
-
-      if (!hasPayments) {
+      if (paymentsToRecord.length === 0) {
         toast.error("Please enter payment amount for at least one invoice");
         return;
       }
 
-      console.log("Invoice Paymrnt", invoicePayments);
-      // Filter invoices with payments
-      const paymentsToRecord = Object.entries(invoicePayments)
-        .filter(([invoiceId]) => Number(invoicePayments[invoiceId]) > 0)
-        .map(([invoiceId, amount]) => ({
-          invoice_number: invoiceId,
-          payment_amount: Number(amount),
-        }));
-
       const payload = {
+        customer_code: selectedCustomer.Customer_Code,
+        customer_name: selectedCustomer.Customer_Name,
+        payment_date: paymentData.Payment_Date,
+        payment_mode: paymentData.Payment_Mode,
+        reference: paymentData.Reference,
+        location_id: paymentData.Location,
+
         paymentsToRecord,
-        paymentData,
       };
 
       console.log("Payload:", payload);
 
-      // await axios.put("http://localhost:5000/api/recordPayment", payload);
+      // 🔹 Only ONE API call (backend should handle insert + update)
+      await axios.post(
+        "http://localhost:5000/api/ProcessRecordPayment",
+        payload,
+      );
 
-      // toast.success("Payment recorded successfully");
+      toast.success("Payment recorded successfully");
 
-      // // Refresh invoices
-      // await fetchUnpaidInvoices(selectedCustomer.Customer_Code);
+      await fetchUnpaidInvoices(selectedCustomer.Customer_Code);
 
-      // Reset payment data
-      setPaymentData({
+      // 🔹 Reset states
+      setPaymentData((prev) => ({
+        ...prev,
         Payment_Date: today,
         Location: "",
         Amount_Received: "",
@@ -426,7 +520,7 @@ const RecordPayment = () => {
         Payment_Mode: "Cash",
         Deposit_To: "",
         Reference: "",
-      });
+      }));
 
       setInvoicePayments({});
       setLastAmountReceived("");
@@ -435,7 +529,14 @@ const RecordPayment = () => {
       console.error("Failed to record payment", err);
       toast.error(err.response?.data?.message || "Failed to record payment");
     }
-  }, [selectedCustomer, invoicePayments, today]);
+  }, [
+    selectedCustomer,
+    filteredInvoices,
+    invoicePayments,
+    paymentData,
+    today,
+    fetchUnpaidInvoices,
+  ]);
 
   const fmt = useCallback(
     (n) =>
@@ -446,6 +547,7 @@ const RecordPayment = () => {
     [],
   );
 
+  console.log("filteredInvoice", filteredInvoices);
   const getLocationName = useCallback(
     (locationId) => {
       const location = locations.find((loc) => loc.Location_ID === locationId);
@@ -756,7 +858,7 @@ const RecordPayment = () => {
               variant="contained"
               startIcon={<SaveIcon />}
               onClick={handleRecordPayment}
-              disabled={hasValidationError}
+              // disabled={hasValidationError}
             >
               Save as Paid
             </Button>
