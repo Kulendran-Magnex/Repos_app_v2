@@ -19,6 +19,7 @@ exports.login = async (req, res) => {
         u.username,
         u.password,
         c.client_id,
+        c.client_name,
         c.database
       FROM "users" u
       JOIN "clients" c ON c.user_id = u.id
@@ -46,6 +47,7 @@ exports.login = async (req, res) => {
         user_id: user.user_id,
         username: user.username,
         client_id: user.client_id,
+        client_name: user.client_name,
         database: user.database,
       },
       SECRET_KEY,

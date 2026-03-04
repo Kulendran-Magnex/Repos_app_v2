@@ -87,7 +87,7 @@ const InvoicePreview = () => {
       setPaymentAmount("");
       // Refresh invoice data
       const res = await axios.get(`http://localhost:5000/api/invoices/${id}`);
-      setInvoice(res.data);
+      setInvoice(res.data[0]);
     } catch (err) {
       console.error("Failed to record payment", err);
       alert("Failed to record payment");
@@ -166,7 +166,10 @@ const InvoicePreview = () => {
               color="primary"
               onClick={() =>
                 navigate("/invoice/edit", {
-                  state: { invoice_id: invoiceNumber },
+                  state: {
+                    invoice_id: invoiceNumber,
+                    customer_id: invoice.customer_code,
+                  },
                 })
               }
             >
@@ -190,7 +193,14 @@ const InvoicePreview = () => {
               color="inherit"
               size="small"
               variant="contained"
-              onClick={() => setOpenPaymentDialog(true)}
+              onClick={() =>
+                navigate("/payment/recordbyid", {
+                  state: {
+                    invoice_id: invoiceNumber,
+                    customer_id: invoice.customer_code,
+                  },
+                })
+              }
               sx={{
                 backgroundColor: "#2196F3",
                 color: "white",

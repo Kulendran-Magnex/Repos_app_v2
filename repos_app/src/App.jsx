@@ -11,7 +11,8 @@ function App() {
   const { authToken } = useContext(AuthContext);
 
   // Protected routes that require authentication
-  const publicRoutes = ["/login", "/", "/home", "/contact-us"];
+  // const publicRoutes = ["/login", "/", "/home", "/contact-us"];
+  const publicRoutes = ["/login", "/"];
 
   useEffect(() => {
     // If not authenticated and trying to access protected route, redirect to login

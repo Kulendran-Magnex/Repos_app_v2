@@ -84,12 +84,42 @@ const salesMenus = [
   { to: "/payment/record", icon: <CreditCardIcon />, label: "Payment" },
 ];
 
+// Reports organized in sections with submenu items
 const reportMenus = [
-  { to: "/sales-summary", icon: <AssessmentIcon />, label: "Sales Summary" },
   {
-    to: "/inventory-report",
-    icon: <InventoryIcon />,
-    label: "Inventory Report",
+    section: "Master",
+    items: [
+      { to: "/categoryReport", label: "Category List" },
+      { to: "/productReport", label: "Products" },
+      { to: "/brandMasterReport", label: "Brands" },
+    ],
+  },
+  {
+    section: "Purchase",
+    items: [
+      { to: "/suppliersReport", label: "Suppliers" },
+      { to: "/grn/report", label: "GRN (Summary / Detail)" },
+      { to: "/supplier-aging", label: "Supplier Aging" },
+    ],
+  },
+  {
+    section: "Sales",
+    items: [
+      { to: "/customers", label: "Customers" },
+      { to: "/reports/sales/sales-summary", label: "Sales Summary" },
+      { to: "/customer-aging", label: "Customer Aging" },
+    ],
+  },
+  {
+    section: "Inventory",
+    items: [
+      { to: "/item-availability", label: "Item Availability" },
+      { to: "/item-availability-as-of", label: "Item Availability As of" },
+      { to: "/fast-moving", label: "Fast Moving" },
+      { to: "/slow-moving", label: "Slow Moving" },
+      { to: "/bin-card", label: "Bin Card" },
+      { to: "/item-movement", label: "Item Movement" },
+    ],
   },
 ];
 
@@ -306,16 +336,25 @@ const NavBar = () => {
           open={Boolean(reportList)}
           onClose={handleReportsClose}
         >
-          {reportMenus.map((menu) => (
-            <MenuItem
-              key={menu.to}
-              component={Link}
-              to={menu.to}
-              selected={location.pathname === menu.to}
-            >
-              {menu.icon}
-              <Box sx={{ ml: 1 }}>{menu.label}</Box>
-            </MenuItem>
+          {reportMenus.map((section) => (
+            <Box key={section.section} sx={{ px: 1 }}>
+              <MenuItem disabled sx={{ fontWeight: "bold", opacity: 1 }}>
+                {section.section}
+              </MenuItem>
+              {section.items.map((item) => (
+                <MenuItem
+                  key={item.to}
+                  component={Link}
+                  to={item.to}
+                  onClick={handleReportsClose}
+                  selected={location.pathname === item.to}
+                  sx={{ pl: 4 }}
+                >
+                  <Box sx={{ ml: 0 }}>{item.label}</Box>
+                </MenuItem>
+              ))}
+              <Divider />
+            </Box>
           ))}
         </Menu>
         <ListItem
@@ -695,6 +734,33 @@ const NavBar = () => {
               >
                 Reports
               </Button>
+              <Menu
+                anchorEl={reportList}
+                open={Boolean(reportList)}
+                onClose={handleReportsClose}
+                anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+                transformOrigin={{ vertical: "top", horizontal: "left" }}
+              >
+                {reportMenus.map((section) => (
+                  <Box key={section.section}>
+                    <MenuItem disabled sx={{ fontWeight: "bold", opacity: 1 }}>
+                      {section.section}
+                    </MenuItem>
+                    {section.items.map((item) => (
+                      <MenuItem
+                        key={item.to}
+                        component={Link}
+                        to={item.to}
+                        onClick={handleReportsClose}
+                        sx={{ pl: 4 }}
+                      >
+                        {item.label}
+                      </MenuItem>
+                    ))}
+                    <Divider />
+                  </Box>
+                ))}
+              </Menu>
             </Box>
 
             <Box sx={{ flexGrow: 1 }} />

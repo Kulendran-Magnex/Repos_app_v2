@@ -39,6 +39,7 @@ const customerRoutes = require("./routes/Inventory/customerRoutes");
 const invoiceRoutes = require("./routes/Sales/invoiceRoutes");
 const salespersonRoutes = require("./routes/Master/salespersonRoutes");
 const recordPaymentRoutes = require("./routes/Sales/recordPaymentRoutes");
+const reportRoutes = require("./routes/Reports/reportRoutes");
 
 app.use("/auth", authRoutes);
 app.use("/", productRoutes);
@@ -62,6 +63,7 @@ app.use("/api", customerRoutes);
 app.use("/api", invoiceRoutes);
 app.use("/api", salespersonRoutes);
 app.use("/api", recordPaymentRoutes);
+app.use("/api/reports", reportRoutes);
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
