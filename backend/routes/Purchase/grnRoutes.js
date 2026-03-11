@@ -9,9 +9,9 @@ router.get("/GRN/Header/:id", authMiddleware, grnController.getGRNHeaderByID);
 router.get(
   "/GRN_HeaderBySupplier/:supplierCode",
   authMiddleware,
-  grnController.getGRNHeaderBySupplier
+  grnController.getGRNHeaderBySupplier,
 );
-
+router.get("/GRN/Tran_all", authMiddleware, grnController.getAllGRNTran);
 router.get("/GRN/Tran/:id", authMiddleware, grnController.getGRNTranByID);
 router.post("/GRN", authMiddleware, grnController.createGRN);
 router.put("/GRN/:id", authMiddleware, grnController.updateGRN);

@@ -45,7 +45,7 @@ const SearchDialog = ({
   const [catlist, setCatList] = useState([]);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/searchProducts").then((res) => {
+    axios.get("http://localhost:5000/fetchProducts").then((res) => {
       setProducts(res.data);
       setFiltered(res.data);
     });
@@ -73,40 +73,37 @@ const SearchDialog = ({
       }
     }
   }, [open]);
-const handleRowClick = async (product) => {
-  if (selectedRow?.Barcode === product.Barcode) {
-    setSelectedRow(null);
-    onConfirmSelection(null);
-    return;
-  }
+  const handleRowClick = async (product) => {
+    if (selectedRow?.Barcode === product.Barcode) {
+      setSelectedRow(null);
+      onConfirmSelection(null);
+      return;
+    }
 
-  try {
-    const response = await axios.post(
-      "http://localhost:5000/getAverageCost",
-      {
-        barcode: product.Barcode,     // ✅ consistent casing
-        clientId: "940T0003",
-        locationId: "001",
-        date: "2026-01-26",
-      }
-    );
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/getAverageCost",
+        {
+          barcode: product.Barcode, // ✅ consistent casing
+          clientId: "940T0003",
+          locationId: "001",
+          date: "2026-01-26",
+        },
+      );
 
+      setSelectedRow({
+        ...product,
+        avg_Cost: response.data?.average_cost ?? 0,
+      });
 
-    setSelectedRow({
-      ...product,
-      avg_Cost: response.data?.average_cost ?? 0,
-    });
-
-     onConfirmSelection({
-      ...product,
-      avg_Cost: response.data?.average_cost ?? 0,
-    });
-   
-  } catch (err) {
-    console.error("Error get averageCost:", err.message);
-  }
-};
-
+      onConfirmSelection({
+        ...product,
+        avg_Cost: response.data?.average_cost ?? 0,
+      });
+    } catch (err) {
+      console.error("Error get averageCost:", err.message);
+    }
+  };
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -117,17 +114,17 @@ const handleRowClick = async (product) => {
     const newFiltered = products.filter(
       (p) =>
         p.Description.toLowerCase().includes(
-          updatedFilters.Description.toLowerCase()
+          updatedFilters.Description.toLowerCase(),
         ) &&
         p.Product_ID.toLowerCase().includes(
-          updatedFilters.Product_ID.toLowerCase()
+          updatedFilters.Product_ID.toLowerCase(),
         ) &&
         p.Cat_Name.toLowerCase().includes(
-          updatedFilters.Cat_Name.toLowerCase()
+          updatedFilters.Cat_Name.toLowerCase(),
         ) &&
         (updatedFilters.CatLvl1 === "" ||
           p.Cat_Name === updatedFilters.CatLvl1) &&
-        p.Barcode.toLowerCase().includes(updatedFilters.BarCode.toLowerCase())
+        p.Barcode.toLowerCase().includes(updatedFilters.BarCode.toLowerCase()),
     );
 
     setFiltered(newFiltered);
@@ -144,7 +141,7 @@ const handleRowClick = async (product) => {
 
   const currentRows = filtered.slice(
     page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
+    page * rowsPerPage + rowsPerPage,
   );
 
   const handleStatusChange = (event) => {

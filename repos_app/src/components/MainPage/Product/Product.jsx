@@ -31,10 +31,10 @@ import axios from "axios";
 
 // Table header configuration
 const headCells = [
+  { id: "productID", label: "Product ID" },
   { id: "productRef", label: "Product Ref" },
   { id: "categoryName", label: "Category Name" },
   { id: "productName", label: "Product Name" },
-  { id: "price", label: "Price" },
   { id: "stockUM", label: "Stock UM" },
 ];
 
@@ -58,7 +58,7 @@ function EnhancedTableHead({
         textOverflow: "ellipsis",
       }}
     >
-      <TableRow sx={{ backgroundColor: "steelblue", color: "Menu" }}>
+      <TableRow sx={{ backgroundColor: "#63b1f1ff", color: "white" }}>
         <TableCell padding="checkbox">
           <Checkbox
             color="primary"
@@ -120,7 +120,7 @@ function EnhancedTableToolbar({
             ? (theme) =>
                 alpha(
                   theme.palette.primary.main,
-                  theme.palette.action.activatedOpacity
+                  theme.palette.action.activatedOpacity,
                 )
             : "transparent",
       }}
@@ -130,7 +130,7 @@ function EnhancedTableToolbar({
         variant={numSelected > 0 ? "subtitle1" : "h4"}
         component="div"
       >
-        {numSelected > 0 ? `${numSelected} selected` : "Product"}
+        {numSelected > 0 ? `${numSelected} selected` : "Products"}
       </Typography>
       <TextField
         label="Search"
@@ -191,6 +191,7 @@ export default function Product() {
       try {
         const response = await axios.get("http://localhost:5000/products");
         setProducts(response.data);
+        console.log("Fetched products:", response.data);
       } catch (err) {
         console.log("Error fetching Category LVL1:", err.message);
       }
@@ -205,7 +206,7 @@ export default function Product() {
   };
 
   const handleSelectAllClick = (event) => {
-    setSelected(event.target.checked ? products.map((n) => n.id) : []);
+    setSelected(event.target.checked ? products.map((n) => n.Product_ID) : []);
   };
 
   const handleClickOpen = (product = null) => {
@@ -245,8 +246,8 @@ export default function Product() {
         prevRows.map((product) =>
           product.id === currentProduct.id
             ? { ...product, ...currentProduct }
-            : product
-        )
+            : product,
+        ),
       );
     } else {
       setProducts((prevRows) => [
@@ -263,7 +264,7 @@ export default function Product() {
 
   const handleDelete = () => {
     setProducts((prevProducts) =>
-      prevProducts.filter((product) => !selected.includes(product.Product_ID))
+      prevProducts.filter((product) => !selected.includes(product.Product_ID)),
     );
     setSelected([]);
   };
@@ -272,20 +273,20 @@ export default function Product() {
     () =>
       products.filter((product) =>
         (product.Description?.toLowerCase() ?? "").includes(
-          filterQuery.toLowerCase()
-        )
+          filterQuery.toLowerCase(),
+        ),
       ),
-    [filterQuery, products]
+    [filterQuery, products],
   );
 
   const visibleRows = React.useMemo(
     () =>
       [...filteredRows]
         .sort((a, b) =>
-          order === "desc" ? b[orderBy] - a[orderBy] : a[orderBy] - b[orderBy]
+          order === "desc" ? b[orderBy] - a[orderBy] : a[orderBy] - b[orderBy],
         )
         .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
-    [filteredRows, order, orderBy, page, rowsPerPage]
+    [filteredRows, order, orderBy, page, rowsPerPage],
   );
 
   return (
@@ -293,7 +294,8 @@ export default function Product() {
       container
       sx={{
         width: "100%",
-        height: "100vh",
+
+        minHeight: "100vh",
         display: "flex",
         justifyContent: "center",
         paddingTop: 2,
@@ -315,9 +317,15 @@ export default function Product() {
           onFilterChange={setFilterQuery}
           onDelete={handleDelete}
         />
-        <IconButton onClick={() => handleClickOpen()}>
-          <AddCircleSharpIcon />
-        </IconButton>
+        <Tooltip title="Add Product">
+          <IconButton
+            color="primary"
+            size="large"
+            onClick={() => navigate("/product/create")}
+          >
+            <AddCircleSharpIcon fontSize="large" />
+          </IconButton>
+        </Tooltip>
 
         {/* Add Box wrapper here for horizontal scrolling */}
         <Box
@@ -358,7 +366,7 @@ export default function Product() {
                             setSelected((prev) =>
                               isItemSelected
                                 ? prev.filter((id) => id !== product.Product_ID)
-                                : [...prev, product.Product_ID]
+                                : [...prev, product.Product_ID],
                             )
                           }
                         />
@@ -371,10 +379,10 @@ export default function Product() {
                           Edit
                         </Button>
                       </TableCell>
+                      <TableCell>{product.Product_ID}</TableCell>
                       <TableCell>{product.Product_Ref}</TableCell>
                       <TableCell>{product.Cat_Name}</TableCell>
                       <TableCell>{product.Description}</TableCell>
-                      <TableCell>{product.Retail_Price}</TableCell>
                       <TableCell>{product.Stock_UM}</TableCell>
                     </TableRow>
                   );

@@ -5,6 +5,7 @@ import Dashboard from "./components/MainPage/Dashboard";
 import ViewPage from "./components/MainPage/ViewPage";
 import Navbar from "./components/Navigation/MagnexAdmin/Navbar";
 import Product from "./components/MainPage/Product/Product";
+import CreateProduct from "./components/MainPage/Product/CreateProduct";
 import EditProduct from "./components/MainPage/Product/EditProduct";
 import CategoryScreen from "./components/MainPage/Category/Category";
 import PackingMasterPage from "./components/MainPage/PackingMaster/PackingMasterPage ";
@@ -49,6 +50,9 @@ import EditInvoice from "./components/Sales/Invoice/EditInvoice";
 import RecordPayment from "./components/Sales/Payment/RecordPayment";
 import RecordPaymentByID from "./components/Sales/Payment/RecordPaymentByID";
 import SalesSummary from "./components/Reports/SalesSummary";
+import CategoryReport from "./components/Reports/Master/CategoryReport";
+import ProductReport from "./components/Reports/Master/ProductReport";
+import GRNReport from "./components/Reports/Purchase/GRNReport";
 import { element } from "prop-types";
 import { ViewList } from "@mui/icons-material";
 import Test from "./components/Test";
@@ -63,6 +67,7 @@ const routes = [
   { path: "/category", element: <CategoryScreen /> },
   { path: "/contact-us", element: <Homepage /> },
   { path: "/product", element: <Product /> },
+  { path: "/product/create", element: <CreateProduct /> },
   { path: "/product/edit", element: <EditProduct /> },
 
   // Packing, Brand, Tax, Credit Card, Currency
@@ -133,6 +138,9 @@ const routes = [
   { path: "/test456", element: <Test /> },
 
   { path: "/reports/sales/sales-summary", element: <SalesSummary /> },
+  { path: "/reports/master/product-report", element: <ProductReport /> },
+  { path: "/reports/master/category-report", element: <CategoryReport /> },
+  { path: "/reports/purchase/grn-report", element: <GRNReport /> },
 ];
 
 export default routes;

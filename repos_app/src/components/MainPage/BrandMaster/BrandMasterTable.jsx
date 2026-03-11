@@ -33,7 +33,7 @@ const BrandMasterTable = ({ onEdit }) => {
     try {
       await deleteBrandMaster(id);
       setBrandMaster((prevData) =>
-        prevData.filter((item) => item.Brand_Code !== id)
+        prevData.filter((item) => item.Brand_Code !== id),
       );
     } catch (error) {
       console.error("Error deleting packing master:", error);
@@ -53,7 +53,7 @@ const BrandMasterTable = ({ onEdit }) => {
       }}
     >
       <Table>
-        <TableHead sx={{ backgroundColor: "steelblue" }}>
+        <TableHead sx={{ backgroundColor: "#63b1f1ff" }}>
           <TableRow>
             <TableCell sx={{ color: "white" }}>Brand Code</TableCell>
             <TableCell sx={{ color: "white" }}>Brand Name</TableCell>

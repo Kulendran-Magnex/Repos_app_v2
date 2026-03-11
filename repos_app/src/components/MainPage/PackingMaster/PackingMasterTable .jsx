@@ -33,7 +33,7 @@ const PackingMasterTable = ({ onEdit }) => {
     try {
       await deletePackingMaster(id);
       setPackingMaster((prevData) =>
-        prevData.filter((item) => item.Pack_ID !== id)
+        prevData.filter((item) => item.Pack_ID !== id),
       );
     } catch (error) {
       console.error("Error deleting packing master:", error);
@@ -53,7 +53,7 @@ const PackingMasterTable = ({ onEdit }) => {
       }}
     >
       <Table aria-label="a dense table">
-        <TableHead sx={{ backgroundColor: "steelblue" }}>
+        <TableHead sx={{ backgroundColor: "#63b1f1ff" }}>
           <TableRow>
             <TableCell sx={{ color: "white" }}>Pack ID</TableCell>
             <TableCell sx={{ color: "white" }}>Pack Description</TableCell>

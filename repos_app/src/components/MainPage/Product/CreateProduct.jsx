@@ -32,10 +32,9 @@ import {
 import { useLocation } from "react-router-dom";
 import "./Editproduct.style.css"; // Import the CSS file
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { to } from "mathjs";
 import toast, { Toaster } from "react-hot-toast";
 
-const EditProduct = () => {
+const CreateProduct = () => {
   const location = useLocation();
   const { currentitem } = location.state || {};
   const [catlist, setCatList] = useState([]);
@@ -51,21 +50,21 @@ const EditProduct = () => {
   const [openPriceDialog, setOpenPriceDialog] = useState(false);
 
   const [formData, setFormData] = useState({
-    Product_ID: "",
+    Product_ID: "New",
     Product_Ref: "",
-    Product_Status: "",
+    Product_Status: "A",
     Category_Lv1: "",
     Category_Lv2: "",
     Category_Lv3: "",
     Description: "",
     Description_Long: "",
-    Product_Type: "",
+    Product_Type: "ST",
     Stock_UM: "",
     Description2: "",
     Description_Long2: "",
     Base_UM: "",
-    Stop_Sell: "",
-    Taxable: "",
+    Stop_Sell: 0,
+    Taxable: 0,
     Warranty_Period: "",
     Warranty_Type: "",
   });
@@ -93,7 +92,7 @@ const EditProduct = () => {
     Retail_Price3: "",
     Wholesale_Price: "",
     MRP: "",
-    Prod_Status: "",
+    Prod_Status: 1,
   });
   const [priceEditMode, setPriceEditMode] = useState(false);
 
@@ -108,52 +107,8 @@ const EditProduct = () => {
       }
     };
 
-    const getProduct = async () => {
-      console.log(currentitem.Product_ID);
-      try {
-        const response = await axios.get(
-          `http://localhost:5000/products/${currentitem.Product_ID}`,
-        );
-
-        setFormData({
-          ...response.data,
-        });
-      } catch (err) {
-        console.log("Error fetching Product:", err.message);
-      }
-    };
-
-    const getProductDetails = async () => {
-      console.log(currentitem.Product_ID);
-      try {
-        const response = await axios.get(
-          `http://localhost:5000/productsDetails/${currentitem.Product_ID}`,
-        );
-        setProduct(response.data);
-        // setProductDetails(response.data[0]);
-      } catch (err) {
-        console.log("Error fetching ProductDetails:", err.message);
-      }
-    };
-
-    const getProductPrice = async () => {
-      console.log(currentitem.Product_ID);
-      try {
-        const response = await axios.get(
-          `http://localhost:5000/price/${currentitem.Product_ID}`,
-        );
-        setProductPrice(response.data);
-        // setPriceDetails({
-        //   ...response.data[0],
-        // });
-      } catch (err) {
-        console.log("Error fetching Product:", err.message);
-      }
-    };
-
     const getLocationGroup = async () => {
       setLoading(true);
-      console.log(currentitem.Product_ID);
       try {
         const response = await axios.get(`http://localhost:5000/api/location`);
         const data = await response.data;
@@ -167,7 +122,7 @@ const EditProduct = () => {
 
     const getPackageMaster = async () => {
       setLoading(true);
-      console.log(currentitem.Product_ID);
+
       try {
         const response = await axios.get(
           `http://localhost:5000/api/packingMaster`,
@@ -182,13 +137,50 @@ const EditProduct = () => {
     };
 
     fetchData();
-    getProduct();
-    getProductPrice();
+
     getLocationGroup();
     getPackageMaster();
-    getProductDetails();
-  }, [currentitem]);
+  }, []);
 
+  // Fetch product details when Product_ID changes
+  useEffect(() => {
+    const fetchProductDetails = async () => {
+      if (formData.Product_ID && formData.Product_ID !== "New") {
+        try {
+          const response = await axios.get(
+            `http://localhost:5000/api/productsDetails/${formData.Product_ID}`,
+          );
+          setProduct(response.data);
+        } catch (err) {
+          console.log("Error fetching Product Details:", err.message);
+          setProduct([]);
+        }
+      }
+    };
+
+    fetchProductDetails();
+  }, [formData.Product_ID]);
+
+  // Fetch product prices when Product_ID changes
+  useEffect(() => {
+    const fetchProductPrices = async () => {
+      if (formData.Product_ID && formData.Product_ID !== "New") {
+        try {
+          const response = await axios.get(
+            `http://localhost:5000/api/price/${formData.Product_ID}`,
+          );
+          setProductPrice(response.data);
+        } catch (err) {
+          console.log("Error fetching Product Prices:", err.message);
+          setProductPrice([]);
+        }
+      }
+    };
+
+    fetchProductPrices();
+  }, [formData.Product_ID]);
+
+  console.log("Form Data:", formData);
   // Handle Category LVL1 or LVL2 or LVL3 selection change
   const handleCategoryChange = async (event, level) => {
     const { value } = event.target;
@@ -285,7 +277,7 @@ const EditProduct = () => {
       setPriceEditMode(false);
       setPriceDetails({
         Product_ID: formData.Product_ID,
-        Barcode: "",
+        Barcode: product.length > 0 ? product[0].Barcode : "",
         Location_Group: locationGroups[0]?.Location_Group || "",
         Retail_Price: "",
         Retail_Price2: "",
@@ -299,132 +291,127 @@ const EditProduct = () => {
     setOpenPriceDialog(true);
   };
 
-  const handleSaveDetails = async () => {
-    if (editMode) {
-      setProduct(
-        product.map((item) =>
-          item.Barcode === productDetails.Barcode ? productDetails : item,
-        ),
-      );
-      try {
-        const response = await axios.put(
-          `http://localhost:5000/productDetails/${productDetails.Product_ID}`,
-          productDetails,
-        );
-        console.log("Product Details updated successfully", response.data);
-      } catch (err) {
-        console.log("Error updating Product:", err.message);
-      }
-      setOpenDetailDialog(false);
-    } else {
-      console.log(productDetails);
-      if (
-        !productDetails.Barcode ||
-        !productDetails.Product_UOM ||
-        !productDetails.UM_QTY ||
-        !productDetails.Unit_Cost
-      ) {
-        toast.error("Please fill in all required fields");
-        return;
-      }
-
-      try {
-        const response = await axios.post(
-          `http://localhost:5000/productDetails/add`,
-          productDetails,
-        );
-        console.log("Product Details updated successfully", response.data);
-        setProduct((prev) => [...prev, response.data?.data]); // Add the new product details to the list
-      } catch (err) {
-        if (err.response) {
-          toast.error(err.response?.data?.message || "Server error");
-        } else {
-          toast.error("Error adding Product Details");
-        }
-        setOpenDetailDialog(false);
-      }
-    }
-  };
-
-  const handleSavePrice = async () => {
-    if (priceEditMode) {
-      // Update existing
-
-      try {
-        const response = await axios.put(
-          `http://localhost:5000/productPrice/${priceDetails.Barcode}`,
-          priceDetails,
-        );
-        console.log("Product Price updated successfully", response.data);
-        setProductPrice(
-          productPrice.map((item) =>
-            item.Barcode === priceDetails.Barcode ? priceDetails : item,
-          ),
-        );
-      } catch (err) {
-        console.log("Error updating Product:", err.message);
-      }
-    } else {
-      // Add new
-      try {
-        const response = await axios.post(
-          `http://localhost:5000/productPrice/add`,
-          priceDetails,
-        );
-        // update local state with returned record if available
-        const added = response?.data?.data || priceDetails;
-        setProductPrice((prev) => [...prev, added]);
-        console.log("Product Price added successfully", added);
-        toast.success("Product Price added successfully");
-      } catch (err) {
-        if (err.response) {
-          toast.error(err.response?.data?.message || "Server error");
-        } else {
-          toast.error("Error adding Product Price");
-        }
-      }
-    }
-
-    setOpenPriceDialog(false);
-  };
-
-  const handleDeleteDetails = async (barcode) => {
+  const handleCreateProduct = async () => {
     try {
-      const response = await axios.delete(
-        "http://localhost:5000/productDetails/" + barcode,
+      const response = await axios.post(
+        "http://localhost:5000/products/add",
+        formData,
       );
-      if (response.data.success) {
-        setProduct((prev) => prev.filter((item) => item.Barcode !== barcode));
-        console.log("Product Details deleted successfully");
-        toast.success("Product Details deleted successfully");
+
+      if (response.data?.Product_ID) {
+        console.log("Product created successfully:", response.data);
+        toast.success("Product created Successfully!");
+        // Update Product_ID returned from backend
+        setFormData((prev) => ({
+          ...prev,
+          Product_ID: response.data.Product_ID,
+        }));
+      } else {
+        console.warn("No Product_ID in response:", response.data);
+        toast.error("Product created but Product_ID not returned");
       }
+    } catch (error) {
+      console.error(
+        "Error creating product:",
+        error.response?.data || error.message,
+      );
+      toast.error("Error creating product");
+    }
+  };
+
+  const handleSaveDetails = async () => {
+    console.log("Details:", productDetails);
+    if (!formData.Product_ID || formData.Product_ID === "New") {
+      toast.error("Please save the product before adding product details");
+      return;
+    }
+    try {
+      // Add new product detail
+      const response = await axios.post(
+        `http://localhost:5000/productDetails/add`,
+        productDetails,
+      );
+      console.log("Product Details created successfully", response.data);
+
+      // Add the new product detail to the local state
+      if (response.data?.data) {
+        setProduct((prev) => [...prev, response.data.data]);
+        toast.success("Product details added successfully!");
+      }
+
+      setOpenDetailDialog(false);
+    } catch (err) {
+      console.log("Error saving Product Details:", err.message);
+      toast.error("Error saving product details");
+    }
+  };
+
+  const handleDeleteDetails = async (item) => {
+    try {
+      // Assuming there's a delete endpoint, adjust the URL as needed
+      const response = await axios.delete(
+        `http://localhost:5000/productDetails/${item.Product_ID}/${item.Barcode}`,
+      );
+      console.log("Product Details deleted successfully", response.data);
+
+      // Remove the item from local state
+      setProduct((prev) => prev.filter((p) => p.Barcode !== item.Barcode));
+      toast.success("Product details deleted successfully!");
     } catch (err) {
       console.log("Error deleting Product Details:", err.message);
-      toast.error("Error deleting Product Details");
+      toast.error("Error deleting product details");
     }
   };
 
   const handleDeletePrice = async (item) => {
     try {
       const response = await axios.delete(
-        "http://localhost:5000/productPrice/" + item.Barcode,
-        {
-          data: { location_Group: item.Location_Group },
-        },
+        `http://localhost:5000/productPrice/${item.Product_ID}/${item.Barcode}/${item.Location_Group}`,
       );
-      if (response.data.success) {
-        setProductPrice((prev) =>
-          prev.filter((priceItem) => priceItem.Barcode !== item.Barcode),
-        );
-        console.log("Product Price deleted successfully");
-        toast.success("Product Price deleted successfully");
-      }
+      console.log("Product Price deleted successfully", response.data);
+
+      // Remove the item from local state
+      setProductPrice((prev) =>
+        prev.filter(
+          (p) =>
+            !(
+              p.Barcode === item.Barcode &&
+              p.Location_Group === item.Location_Group
+            ),
+        ),
+      );
+      toast.success("Product price deleted successfully!");
     } catch (err) {
       console.log("Error deleting Product Price:", err.message);
-      toast.error("Error deleting Product Price");
+      toast.error("Error deleting product price");
     }
   };
 
+  const handleSavePrice = async () => {
+    if (!formData.Product_ID || formData.Product_ID === "New") {
+      toast.error("Please save the product before adding price details");
+      return;
+    }
+    // Add new
+    try {
+      const response = await axios.post(
+        `http://localhost:5000/productPrice/add`,
+        priceDetails,
+      );
+      if (response.data?.success) {
+        // update local state with returned record if available
+        const added = response?.data?.data || priceDetails;
+        setProductPrice((prev) => [...prev, added]);
+        setOpenPriceDialog(false);
+        toast.success("Product price added successfully!");
+      } else {
+        toast.error(response.data?.message || "Failed to add product price");
+      }
+    } catch (err) {
+      console.log("Error adding Product Price:", err.message);
+      toast.error("Error adding product price");
+    }
+  };
   const handleProductDetailChange = (event) => {
     const { name, value } = event.target;
     setProductDetails((prevData) => ({
@@ -443,12 +430,38 @@ const EditProduct = () => {
 
   // Handle Product Status change
   const handleStatusChange = (event) => {
+    const { name, value } = event.target;
     setFormData((prevData) => ({
       ...prevData,
-      Product_Status: event.target.value,
+      [name]: value,
     }));
   };
-  console.log("product data and product price :", product, productPrice);
+
+  // Handle Tab key press on Description field to auto-fill related description fields
+  const handleDescriptionTabKey = (event) => {
+    if (event.key === "Tab") {
+      event.preventDefault(); // Prevent default Tab behavior
+      const descriptionValue = formData.Description;
+
+      setFormData((prevData) => ({
+        ...prevData,
+        Description_Long: descriptionValue,
+        Description2: descriptionValue,
+        Description_Long2: descriptionValue,
+      }));
+
+      // Move focus to the next field (Long Description)
+      setTimeout(() => {
+        const nextField = document.querySelector(
+          'input[name="Description_Long"]',
+        );
+        if (nextField) {
+          nextField.focus();
+        }
+      }, 0);
+    }
+  };
+
   // Save Product data to the server
   const handleSave = async () => {
     try {
@@ -526,9 +539,7 @@ const EditProduct = () => {
     <Box sx={{ bgcolor: "whitesmoke" }}>
       <Box className="edit-product-container">
         <Box className="edit-product-card-container">
-          <Typography fontSize={25}>
-            Edit Product - {currentitem.Description}
-          </Typography>
+          <Typography fontSize={25}>Create Product</Typography>
         </Box>
       </Box>
       <Box display="flex" justifyContent="center">
@@ -606,6 +617,7 @@ const EditProduct = () => {
                 value={formData.Description || ""}
                 name="Description"
                 onChange={handleChange}
+                onKeyDown={handleDescriptionTabKey}
               />
               <TextField
                 label="Long Description"
@@ -624,8 +636,8 @@ const EditProduct = () => {
                     onChange={handleStatusChange}
                     label="Product Type"
                   >
-                    <MenuItem value={"ST"}>Stock</MenuItem>
-                    <MenuItem value={"NS"}>Non Stock</MenuItem>
+                    <MenuItem value="ST">Stock</MenuItem>
+                    <MenuItem value="NS">Non Stock</MenuItem>
                   </Select>
                 </FormControl>
               </Box>
@@ -745,6 +757,14 @@ const EditProduct = () => {
                   ></FormControlLabel>
                 </Box>
               </Box>
+              <Button
+                variant="outlined"
+                sx={{ width: "50%" }}
+                onClick={handleCreateProduct}
+                disabled={formData.Product_ID !== "New"}
+              >
+                Save
+              </Button>
             </Box>
 
             <Stack direction="column" spacing={2} sx={{ width: "100%" }}>
@@ -793,27 +813,23 @@ const EditProduct = () => {
                               <TableCell>{item.Base_UM}</TableCell>
 
                               <TableCell>
-                                <Stack direction="row">
-                                  <Button
-                                    variant="contained"
-                                    color="primary"
-                                    size="small"
-                                    onClick={() => handleOpenDialog(item)}
-                                  >
-                                    Edit
-                                  </Button>
-                                  <Button
-                                    variant="outlined"
-                                    color="error"
-                                    size="small"
-                                    sx={{ ml: 1 }}
-                                    onClick={() =>
-                                      handleDeleteDetails(item.Barcode)
-                                    }
-                                  >
-                                    Delete
-                                  </Button>
-                                </Stack>
+                                <Button
+                                  variant="contained"
+                                  color="primary"
+                                  size="small"
+                                  onClick={() => handleOpenDialog(item)}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="outlined"
+                                  color="error"
+                                  size="small"
+                                  sx={{ ml: 1 }}
+                                  onClick={() => handleDeleteDetails(item)}
+                                >
+                                  Delete
+                                </Button>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -872,25 +888,23 @@ const EditProduct = () => {
                               <TableCell>{item.MRP}</TableCell>
 
                               <TableCell>
-                                <Stack direction="row">
-                                  <Button
-                                    variant="contained"
-                                    color="primary"
-                                    size="small"
-                                    onClick={() => handleOpenPriceDialog(item)}
-                                  >
-                                    Edit
-                                  </Button>
-                                  <Button
-                                    variant="outlined"
-                                    color="error"
-                                    size="small"
-                                    sx={{ ml: 1 }}
-                                    onClick={() => handleDeletePrice(item)}
-                                  >
-                                    Delete
-                                  </Button>
-                                </Stack>
+                                <Button
+                                  variant="contained"
+                                  color="primary"
+                                  size="small"
+                                  onClick={() => handleOpenPriceDialog(item)}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="outlined"
+                                  color="error"
+                                  size="small"
+                                  sx={{ ml: 1 }}
+                                  onClick={() => handleDeletePrice(item)}
+                                >
+                                  Delete
+                                </Button>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -1079,24 +1093,14 @@ const EditProduct = () => {
                               No barcodes available. Add product details first.
                             </MenuItem>
                           ) : (
-                            product
-                              .map((p) => ({
-                                ...p,
-                                cleanBarcode: String(p.Barcode).trim(),
-                              })) // normalize first
-                              .filter(
-                                (p) =>
-                                  p.cleanBarcode !==
-                                  String(productPrice.Barcode).trim(),
-                              )
-                              .map((detail) => (
-                                <MenuItem
-                                  key={detail.Barcode}
-                                  value={detail.Barcode}
-                                >
-                                  {detail.Barcode}
-                                </MenuItem>
-                              ))
+                            product.map((detail) => (
+                              <MenuItem
+                                key={detail.Barcode}
+                                value={detail.Barcode}
+                              >
+                                {detail.Barcode}
+                              </MenuItem>
+                            ))
                           )}
                         </Select>
                       </FormControl>
@@ -1202,4 +1206,4 @@ const EditProduct = () => {
   );
 };
 
-export default EditProduct;
+export default CreateProduct;

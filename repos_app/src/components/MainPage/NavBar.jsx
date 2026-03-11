@@ -90,7 +90,7 @@ const reportMenus = [
     section: "Master",
     items: [
       { to: "/categoryReport", label: "Category List" },
-      { to: "/productReport", label: "Products" },
+      { to: "/reports/master/product-report", label: "Products" },
       { to: "/brandMasterReport", label: "Brands" },
     ],
   },

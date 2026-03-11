@@ -45,7 +45,7 @@ const SearchDialog = ({
   const [catlist, setCatList] = useState([]);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/searchProducts").then((res) => {
+    axios.get("http://localhost:5000/fetchProducts").then((res) => {
       setProducts(res.data);
       setFiltered(res.data);
     });
@@ -93,17 +93,17 @@ const SearchDialog = ({
     const newFiltered = products.filter(
       (p) =>
         p.Description.toLowerCase().includes(
-          updatedFilters.Description.toLowerCase()
+          updatedFilters.Description.toLowerCase(),
         ) &&
         p.Product_ID.toLowerCase().includes(
-          updatedFilters.Product_ID.toLowerCase()
+          updatedFilters.Product_ID.toLowerCase(),
         ) &&
         p.Cat_Name.toLowerCase().includes(
-          updatedFilters.Cat_Name.toLowerCase()
+          updatedFilters.Cat_Name.toLowerCase(),
         ) &&
         (updatedFilters.CatLvl1 === "" ||
           p.Cat_Name === updatedFilters.CatLvl1) &&
-        p.Barcode.toLowerCase().includes(updatedFilters.BarCode.toLowerCase())
+        p.Barcode.toLowerCase().includes(updatedFilters.BarCode.toLowerCase()),
     );
 
     setFiltered(newFiltered);
@@ -120,7 +120,7 @@ const SearchDialog = ({
 
   const currentRows = filtered.slice(
     page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
+    page * rowsPerPage + rowsPerPage,
   );
 
   const handleStatusChange = (event) => {

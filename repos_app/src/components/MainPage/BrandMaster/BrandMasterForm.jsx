@@ -20,7 +20,6 @@ const BrandMasterForm = ({ onFormSubmit }) => {
 
   return (
     <form onSubmit={handleSubmit}>
-      <Typography variant="h6">Add New Brand Master</Typography>
       <TextField
         label="Brand Code"
         value={brandCode}

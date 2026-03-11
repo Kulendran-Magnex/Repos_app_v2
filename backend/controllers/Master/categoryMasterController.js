@@ -9,8 +9,8 @@ exports.getCategorylvl1 = async (req, res) => {
     const result = await db.query(
       `SELECT *
        FROM categorylvl1
-       WHERE Client_id = $1`,
-      [client_id]
+       WHERE "Client_id" = $1`,
+      [client_id],
     );
 
     if (result.rowCount === 0) {
@@ -35,8 +35,8 @@ exports.getCategorylvl2 = async (req, res) => {
       `SELECT *
        FROM categorylvl2
        WHERE categorylvl1_id = $1
-         AND Client_id = $2`,
-      [categoryLvl1Id, client_id]
+         AND "Client_id" = $2`,
+      [categoryLvl1Id, client_id],
     );
 
     if (result.rowCount === 0) {
@@ -61,8 +61,8 @@ exports.getCategorylvl3 = async (req, res) => {
       `SELECT *
        FROM categorylvl3
        WHERE category_lvl2_id = $1
-         AND Client_id = $2`,
-      [categoryLvl2Id, client_id]
+         AND "Client_id" = $2`,
+      [categoryLvl2Id, client_id],
     );
 
     if (result.rowCount === 0) {
@@ -86,10 +86,10 @@ exports.createCategorylvl1 = async (req, res) => {
     const result = await db.query(
       `SELECT id
        FROM categorylvl1
-       WHERE Client_id = $1
+       WHERE "Client_id" = $1
        ORDER BY id DESC
        LIMIT 1`,
-      [client_id]
+      [client_id],
     );
 
     let nextId = "C01";
@@ -101,9 +101,9 @@ exports.createCategorylvl1 = async (req, res) => {
     }
 
     const insertResult = await db.query(
-      `INSERT INTO categorylvl1 (id, name, Client_id)
+      `INSERT INTO categorylvl1 (id, name, "Client_id")
        VALUES ($1, $2, $3)`,
-      [nextId, name, client_id]
+      [nextId, name, client_id],
     );
 
     if (insertResult.rowCount === 0) {
@@ -132,10 +132,10 @@ exports.createCategorylvl2 = async (req, res) => {
       `SELECT id
        FROM categorylvl2
        WHERE categorylvl1_id = $1
-         AND Client_id = $2
+         AND "Client_id" = $2
        ORDER BY id DESC
        LIMIT 1`,
-      [categoryLvl1Id, client_id]
+      [categoryLvl1Id, client_id],
     );
 
     let nextId = `${categoryLvl1Id}01`;
@@ -147,9 +147,9 @@ exports.createCategorylvl2 = async (req, res) => {
     }
 
     const insertResult = await db.query(
-      `INSERT INTO categorylvl2 (id, name, categorylvl1_id, Client_id)
+      `INSERT INTO categorylvl2 (id, name, categorylvl1_id, "Client_id")
        VALUES ($1, $2, $3, $4)`,
-      [nextId, name, categoryLvl1Id, client_id]
+      [nextId, name, categoryLvl1Id, client_id],
     );
 
     res.status(201).json({
@@ -175,10 +175,10 @@ exports.createCategorylvl3 = async (req, res) => {
       `SELECT id
        FROM categorylvl3
        WHERE category_lvl2_id = $1
-         AND Client_id = $2
+         AND "Client_id" = $2
        ORDER BY id DESC
        LIMIT 1`,
-      [categoryLvl2Id, client_id]
+      [categoryLvl2Id, client_id],
     );
 
     let nextId = `${categoryLvl2Id}01`;
@@ -190,9 +190,9 @@ exports.createCategorylvl3 = async (req, res) => {
     }
 
     await db.query(
-      `INSERT INTO categorylvl3 (id, name, category_lvl2_id, Client_id)
+      `INSERT INTO categorylvl3 (id, name, category_lvl2_id, "Client_id")
        VALUES ($1, $2, $3, $4)`,
-      [nextId, name, categoryLvl2Id, client_id]
+      [nextId, name, categoryLvl2Id, client_id],
     );
 
     res.status(201).json({
@@ -216,8 +216,8 @@ exports.updateCategorylvl1 = async (req, res) => {
   const result = await db.query(
     `UPDATE categorylvl1
      SET name = $1
-     WHERE id = $2 AND Client_id = $3`,
-    [name, req.params.id, client_id]
+     WHERE id = $2 AND "Client_id" = $3`,
+    [name, req.params.id, client_id],
   );
 
   if (result.rowCount === 0) {
@@ -233,8 +233,8 @@ exports.updateCategorylvl2 = async (req, res) => {
   const result = await db.query(
     `UPDATE categorylvl2
      SET name = $1, categorylvl1_id = $2
-     WHERE id = $3 AND Client_id = $4`,
-    [name, categorylvl1_id, req.params.id, client_id]
+     WHERE id = $3 AND "Client_id" = $4`,
+    [name, categorylvl1_id, req.params.id, client_id],
   );
 
   if (result.rowCount === 0) {
@@ -250,8 +250,8 @@ exports.updateCategorylvl3 = async (req, res) => {
   const result = await db.query(
     `UPDATE categorylvl3
      SET name = $1, category_lvl2_id = $2
-     WHERE id = $3 AND Client_id = $4`,
-    [name, categorylvl2_id, req.params.id, client_id]
+     WHERE id = $3 AND "Client_id" = $4`,
+    [name, categorylvl2_id, req.params.id, client_id],
   );
 
   if (result.rowCount === 0) {
@@ -267,8 +267,8 @@ exports.updateCategorylvl3 = async (req, res) => {
 exports.deleteCategorylvl1 = async (req, res) => {
   const result = await db.query(
     `DELETE FROM categorylvl1
-     WHERE id = $1 AND Client_id = $2`,
-    [req.params.id, client_id]
+     WHERE id = $1 AND "Client_id" = $2`,
+    [req.params.id, client_id],
   );
 
   if (result.rowCount === 0) {
@@ -281,8 +281,8 @@ exports.deleteCategorylvl1 = async (req, res) => {
 exports.deleteCategorylvl2 = async (req, res) => {
   const result = await db.query(
     `DELETE FROM categorylvl2
-     WHERE id = $1 AND Client_id = $2`,
-    [req.params.id, client_id]
+     WHERE id = $1 AND "Client_id" = $2`,
+    [req.params.id, client_id],
   );
 
   if (result.rowCount === 0) {

@@ -20,7 +20,6 @@ const PackingMasterForm = ({ onFormSubmit }) => {
 
   return (
     <form onSubmit={handleSubmit}>
-      <Typography variant="h6">Add New Packing Master</Typography>
       <TextField
         label="Pack ID"
         value={packId}

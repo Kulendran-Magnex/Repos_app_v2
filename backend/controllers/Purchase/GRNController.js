@@ -119,6 +119,30 @@ exports.getGRNTranByID = async (req, res) => {
   }
 };
 
+exports.getAllGRNTran = async (req, res) => {
+  const client_id = req.user?.client_id;
+
+  try {
+    const result = await db.query(
+      `
+      SELECT *
+      FROM "grn_tran"
+      WHERE "Client_ID" = $1
+      `,
+      [client_id],
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Data not found" });
+    }
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("DB Error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
+};
+
 /* =========================
    CREATE GRN
 ========================= */

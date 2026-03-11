@@ -49,7 +49,7 @@ const SearchDialog = ({
   const [selectedRowsPerPage, setSelectedRowsPerPage] = useState(5);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/searchProducts").then((res) => {
+    axios.get("http://localhost:5000/fetchProducts").then((res) => {
       setProducts(res.data);
       setFiltered(res.data);
     });
@@ -71,7 +71,7 @@ const SearchDialog = ({
 
     if (isSelected) {
       setSelectedData(
-        selectedData.filter((p) => p.Barcode !== product.Barcode)
+        selectedData.filter((p) => p.Barcode !== product.Barcode),
       );
     } else {
       setSelectedData([...selectedData, product]);
@@ -81,19 +81,19 @@ const SearchDialog = ({
   const handleQuantityChange = (barcode, newQty) => {
     setSelectedData((prevSelected) =>
       prevSelected.map((item) =>
-        item.Barcode === barcode ? { ...item, quantity: newQty } : item
-      )
+        item.Barcode === barcode ? { ...item, quantity: newQty } : item,
+      ),
     );
   };
 
   const handleRowClick123 = (product) => {
     const isSelected = selectedData.some(
-      (p) => p.Product_ID === product.Product_ID
+      (p) => p.Product_ID === product.Product_ID,
     );
 
     if (isSelected) {
       setSelectedData(
-        selectedData.filter((p) => p.Product_ID !== product.Product_ID)
+        selectedData.filter((p) => p.Product_ID !== product.Product_ID),
       );
     } else {
       setSelectedData([...selectedData, product]);
@@ -109,17 +109,17 @@ const SearchDialog = ({
     const newFiltered = products.filter(
       (p) =>
         p.Description.toLowerCase().includes(
-          updatedFilters.Description.toLowerCase()
+          updatedFilters.Description.toLowerCase(),
         ) &&
         p.Product_ID.toLowerCase().includes(
-          updatedFilters.Product_ID.toLowerCase()
+          updatedFilters.Product_ID.toLowerCase(),
         ) &&
         p.Cat_Name.toLowerCase().includes(
-          updatedFilters.Cat_Name.toLowerCase()
+          updatedFilters.Cat_Name.toLowerCase(),
         ) &&
         (updatedFilters.CatLvl1 === "" ||
           p.Cat_Name === updatedFilters.CatLvl1) &&
-        p.Barcode.toLowerCase().includes(updatedFilters.BarCode.toLowerCase())
+        p.Barcode.toLowerCase().includes(updatedFilters.BarCode.toLowerCase()),
     );
 
     setFiltered(newFiltered);
@@ -136,12 +136,12 @@ const SearchDialog = ({
 
   const currentRows = filtered.slice(
     page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
+    page * rowsPerPage + rowsPerPage,
   );
 
   const handleRemoveProduct = (barcode) => {
     setSelectedData((prevList) =>
-      prevList.filter((p) => p.Barcode !== barcode)
+      prevList.filter((p) => p.Barcode !== barcode),
     );
   };
 
@@ -283,7 +283,7 @@ const SearchDialog = ({
                 <TableBody>
                   {currentRows.map((product) => {
                     const isSelected = selectedData.some(
-                      (p) => p.Barcode === product.Barcode
+                      (p) => p.Barcode === product.Barcode,
                     );
 
                     return (
@@ -364,7 +364,7 @@ const SearchDialog = ({
                               onChange={(e) => {
                                 const value = Math.max(
                                   0,
-                                  parseInt(e.target.value) || 0
+                                  parseInt(e.target.value) || 0,
                                 ); // Prevent negative
                                 handleQuantityChange(p.Barcode, value);
                               }}

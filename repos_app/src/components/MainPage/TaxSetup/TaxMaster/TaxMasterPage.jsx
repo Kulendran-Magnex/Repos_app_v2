@@ -50,7 +50,7 @@ const TaxMasterPage = ({ setEnable }) => {
           tax.Tax_Code,
           tax.Tax_Name,
           tax.Tax_Rate,
-          tax.Formula
+          tax.Formula,
         );
         setOpen(false);
         setRefreshData((prev) => !prev);

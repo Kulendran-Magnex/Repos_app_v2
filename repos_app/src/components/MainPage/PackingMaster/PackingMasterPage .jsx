@@ -9,11 +9,17 @@ import {
   DialogContent,
   DialogTitle,
   TextField,
+  Stack,
+  Paper,
+  Divider,
 } from "@mui/material";
 import PackingMasterTable from "./PackingMasterTable ";
 import PackingMasterForm from "./PackingMasterForm ";
 import { updatePackingMaster } from "../../API/api";
 import { addPackingMaster } from "../../API/api";
+
+const PACKING_SECTION_HEIGHT = 480;
+
 const PackingMasterPage = () => {
   const [refreshData, setRefreshData] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null); // To store the selected item for editing
@@ -44,7 +50,7 @@ const PackingMasterPage = () => {
         // Call the updatePackingMaster API to update the description
         const result = await updatePackingMaster(
           selectedItem.Pack_ID,
-          editDescription
+          editDescription,
         );
 
         console.log("Updated item:", result);
@@ -81,54 +87,80 @@ const PackingMasterPage = () => {
   };
 
   return (
-    <Box sx={{ minHeight: "90vh", backgroundColor: "whitesmoke" }}>
-      <Typography marginLeft={5} paddingTop={3} fontSize={25}>
-        Packing Master
-      </Typography>
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: isMobile ? "column" : "row", // Stack vertically on mobile, horizontally on larger screens
-          gap: 3,
-          margin: 5,
-          justifyContent: "space-between",
-        }}
-      >
-        {/* Mobile version - Add button */}
-        {isMobile && (
-          <Box sx={{ marginTop: 2, maxWidth: 200 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => setOpenAddModal(true)}
-              fullWidth
-            >
-              Add New
-            </Button>
-          </Box>
-        )}
+    <Box sx={{ minHeight: "90vh", backgroundColor: "whitesmoke", p: 2 }}>
+      <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 3 }}>
+        <Stack direction="row" alignItems="center" spacing={2}>
+          <Typography fontWeight={700} fontSize={28} color="primary">
+            Packing Master
+          </Typography>
+          <Box flex={1} />
+        </Stack>
+      </Paper>
 
-        {/* Only show the form on larger screens */}
-        {!isMobile && (
-          <Box
+      {/* Mobile version - Add button */}
+      {isMobile && (
+        <Box sx={{ marginTop: 2, maxWidth: 200 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setOpenAddModal(true)}
+            fullWidth
+          >
+            Add New
+          </Button>
+        </Box>
+      )}
+
+      {/* Only show the form on larger screens */}
+      {!isMobile && (
+        <Stack direction="row" spacing={3}>
+          <Paper
+            elevation={2}
             sx={{
-              flex: 1,
-              padding: 3,
-              height: 400,
-              minWidth: 250,
-              maxWidth: 500,
-              backgroundColor: "white",
+              p: 3,
+              borderRadius: 3,
+              minWidth: 340,
+              height: PACKING_SECTION_HEIGHT,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-start",
             }}
           >
-            <PackingMasterForm onFormSubmit={handleFormSubmit} />
-          </Box>
-        )}
-
-        {/* Table */}
-        <Box sx={{ flex: 1.4, overflowX: "auto", backgroundColor: "white" }}>
-          <PackingMasterTable onEdit={handleEdit} key={refreshData} />
-        </Box>
-      </Box>
+            <Typography fontWeight={600} fontSize={20} mb={2}>
+              Add Packing Master
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Box
+              sx={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <PackingMasterForm onFormSubmit={handleFormSubmit} />
+            </Box>
+          </Paper>
+          <Paper
+            elevation={2}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              flex: 1,
+              height: PACKING_SECTION_HEIGHT,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Typography fontWeight={600} fontSize={20} mb={2}>
+              Packing List
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Box sx={{ flex: 1, overflowY: "auto" }}>
+              <PackingMasterTable onEdit={handleEdit} key={refreshData} />
+            </Box>
+          </Paper>
+        </Stack>
+      )}
 
       <Dialog open={open} onClose={() => setOpen(false)}>
         <DialogTitle>Edit Packing Master</DialogTitle>
